@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "rpnhs:lib"
+
+    - path: "./app/Main.hs"
+      component: "rpnhs:exe:rpnhs"
+
+    - path: "./app/Paths_rpnhs.hs"
+      component: "rpnhs:exe:rpnhs"
+
+    - path: "./test"
+      component: "rpnhs:test:rpnhs-test"
