@@ -85,6 +85,7 @@ parseOperator = parseFromMap m
              (["idiv", "i/"]        , Op2 opIDivide  ),
              (["mod", "%"]          , Op2 opMod      ),
              (["pow", "^", "**"]    , Op2 opPower    ),
+             (["log"]               , Op2 opLog      ),
              (["sin"]               , Op1 opSin      ),
              (["cos"]               , Op1 opCos      ),
              (["tan"]               , Op1 opTan      ),

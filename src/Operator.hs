@@ -18,6 +18,7 @@ module Operator (
   opIDivide,
   opMod,
   opPower,
+  opLog,
   opSin,
   opCos,
   opTan,
