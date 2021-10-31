@@ -154,7 +154,7 @@ opIDivide v v' = buildIOp2 div v v'
 
 -- modulo
 opMod _ v | isZero v = Nothing
-opMod v v' = buildIOp2 mod v v'
+opMod v v' = buildOp2 (Just mod) Nothing (Just mod') v v'
 
 -- power
 opPower :: Operator2
