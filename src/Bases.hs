@@ -97,7 +97,10 @@ intoRadixComp b i
   where
     -- value of -1 in our chosen radix complement
     -- e.g. where b=2, i=-5 -> minus1 = 15 [1111]
-    minus1 = b' ^ (1 + ceiling (logBase b'' (abs i'))) - 1
-      where b'  = fromIntegral b
+    minus1 | abs i > nextPower `div` 2 = b' * nextPower - 1
+           | otherwise                 =      nextPower - 1
+      where nextPower = b' ^ ceiling (logBase b'' (abs i'))
+            b'  = fromIntegral b
             b'' = fromIntegral b
             i'  = fromIntegral i
+
