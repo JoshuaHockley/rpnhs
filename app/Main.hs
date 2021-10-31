@@ -7,6 +7,7 @@ import Error
 import Control.Monad
 import Data.List (words)
 import System.IO
+import System.Exit
 import System.Environment (getArgs)
 import System.Console.Haskeline
 
@@ -22,8 +23,8 @@ main = do args <- getArgs
 
 runInline :: [String] -> IO ()
 runInline args = case rpn emptyState =<< tokens of
-                   Ok (_, out) -> mapM_ putStrLn out
-                   Err e       -> hPrint stderr e
+                   Ok (_, out) -> mapM_ putStrLn out >> exitSuccess
+                   Err e       -> hPrint stderr e    >> exitFailure
   where
     tokens = mapM parseToken (concatMap words args)
 
