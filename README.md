@@ -169,6 +169,7 @@ Base representations use digits 0-9, followed by characters a-z (lowercase). The
 | Octal    | `0o(c)...` |
 | Hex      | `0x(c)...` |
 | Base `n` | `n(c)'...` |
+
 For binary, octal, and hex, the leading `0` is optional.
 
 `0b1001 p` prints `9`\
@@ -185,9 +186,9 @@ When 'c' is given in the position indicated above, the input is interpreted as a
 The `p` command (short for `print`) can be extended with base information.
 |     |     |
 | --- | --- |
-| Binary   | `pb(c)` |
-| Octal    | `po(c)` |
-| Hex      | `px(c)` |
+| Binary   | `pb(c)`  |
+| Octal    | `po(c)`  |
+| Hex      | `px(c)`  |
 | Base `n` | `p'n(c)` |
 
 `9 pb` prints `1001`\
