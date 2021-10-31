@@ -22,7 +22,7 @@ rpnhs provides 2 modes of operation:
 #### Inline
 To run the inline mode pass in instructions to the calculator as commandline arguments.\
 `rpnhs 4 5 / 1 + p` will print `9/5` to stdout.\
-`rpnhs '1 p 3 * p 3 * p 3 * p'` will print the first 4 powers of 3 to stdout, on separate lines.\
+`rpnhs '1 p 3 * p 3 * p 3 * p'` will print the first 4 powers of 3 to stdout, on separate lines.
 
 Note the single quotes used in the second example. This is to prevent the shell expanding the `*` as a glob pattern.\
 An alternative solution would be to use `mul` instead which is an alias for `*`. See [operators](#operators) for a complete list of operator aliases.
@@ -102,7 +102,7 @@ Operators pop 1-2 values from the top of the stack, and push back a single resul
 | `sinh`             | 1     |
 | `cosh`             | 1     |
 | `tanh`             | 1     |
-| `asin`             | 1     |
+| `asin`, `arcsin`   | 1     |
 | `acos`, `arccos`   | 1     |
 | `atan`, `arctan`   | 1     |
 | `asinh`, `arcsinh` | 1     |

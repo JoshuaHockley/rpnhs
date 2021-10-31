@@ -92,7 +92,7 @@ parseOperator = parseFromMap m
              (["sinh"]              , Op1 opSinh     ),
              (["cosh"]              , Op1 opCosh     ),
              (["tanh"]              , Op1 opTanh     ),
-             (["asin"]              , Op1 opAsin     ),
+             (["asin", "arcsin"]    , Op1 opAsin     ),
              (["acos", "arccos"]    , Op1 opAcos     ),
              (["atan", "arctan"]    , Op1 opAtan     ),
              (["asinh", "arcsinh"]  , Op1 opAsinh    ),
