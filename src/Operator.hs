@@ -31,6 +31,8 @@ module Operator (
   opAsinh,
   opAcosh,
   opAtanh,
+  opDeg,
+  opRad,
   opNot,
   opAnd,
   opOr,
@@ -48,6 +50,7 @@ import Util ((.:))
 
 import Data.Function (on)
 import Data.Ratio (numerator, denominator)
+import Data.Fixed
 import Data.Bits
 
 -- a unary operator
@@ -183,6 +186,9 @@ opAsinh = buildFOp1 asinh
 opAcosh = buildFOp1 acosh
 opAtanh = buildFOp1 atanh
 
+opDeg = buildFOp1 ((`mod'` 360     ) . (* (180 / pi)))
+opRad = buildFOp1 ((`mod'` (2 * pi)) . (* (pi / 180)))
+
 -- bitwise
 opNot  = buildIOp1 complement
 opAnd  = buildIOp2 (.&.)
@@ -191,10 +197,8 @@ opNand = buildIOp2 (complement .: (.&.))
 opNor  = buildIOp2 (complement .: (.|.))
 opXor  = buildIOp2 xor
 
--- rounding
+-- misc
 opRnd   = buildRounder id round   round
 opFloor = buildRounder id floor   floor
 opCeil  = buildRounder id ceiling ceiling
-
--- misc
 opFloat = Just . F . asF

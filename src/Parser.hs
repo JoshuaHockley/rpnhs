@@ -98,6 +98,8 @@ parseOperator = parseFromMap m
              (["asinh", "arcsinh"]  , Op1 opAsinh    ),
              (["acosh", "arccosh"]  , Op1 opAcosh    ),
              (["atanh", "arctanh"]  , Op1 opAtanh    ),
+             (["deg"]               , Op1 opDeg      ),
+             (["rad"]               , Op1 opRad      ),
              (["not", "!"]          , Op1 opNot      ),
              (["and", "&"]          , Op2 opAnd      ),
              (["or", "|"]           , Op2 opOr       ),
