@@ -188,7 +188,7 @@ parseValue = composeParsers [parseVI, parseVR, parseVF, parseVNeg, parseVBased, 
         parseBaseN s = parseBaseN' <$> splitOn '\'' s
           where
             parseBaseN' (form, lit) = do
-              b  <- toResult (InvalidBaseSE s) (readMaybe s)
+              b  <- toResult (InvalidBaseSE s) (readMaybe base)
               b' <- assert validBase (InvalidBaseE b) b
               parseB compl b' lit
               where
