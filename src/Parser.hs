@@ -71,7 +71,7 @@ parseToken' = composeParsers [operator, command, commandIO, value]  -- parsers t
 
 parseOperator :: Parser Operator
 parseOperator = parseFromMap m
-  where m = [(["abs", "||"]         , Op1 opAbs      ),
+  where m = [(["abs"]               , Op1 opAbs      ),
              (["neg", "negate"]     , Op1 opNegate   ),
              (["recip"]             , Op1 opRecip    ),
              (["sqrt", "root"]      , Op1 opSqrt     ),
@@ -84,7 +84,7 @@ parseOperator = parseFromMap m
              (["div", "/"]          , Op2 opDivide   ),
              (["idiv", "i/"]        , Op2 opIDivide  ),
              (["mod", "%"]          , Op2 opMod      ),
-             (["pow", "^", "**"]    , Op2 opPower    ),
+             (["pow", "^"]          , Op2 opPower    ),
              (["log"]               , Op2 opLog      ),
              (["sin"]               , Op1 opSin      ),
              (["cos"]               , Op1 opCos      ),
@@ -109,7 +109,11 @@ parseOperator = parseFromMap m
              (["rnd", "round"]      , Op1 opRnd      ),
              (["floor"]             , Op1 opFloor    ),
              (["ceil", "ceiling"]   , Op1 opCeil     ),
-             (["fl", "float"]       , Op1 opFloat    )
+             (["fl", "float"]       , Op1 opFloat    ),
+             (["++"]                , OpF opAdd      ),
+             (["**"]                , OpF opMultiply ),
+             (["&&"]                , OpF opAnd      ),
+             (["||"]                , OpF opOr       )
             ]
 
 

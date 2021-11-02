@@ -31,6 +31,7 @@ data TokenPure = ValT Value
 
 data Operator = Op1 Operator1
               | Op2 Operator2
+              | OpF Operator2  -- folding operator
 
 -- a command that modifies the state
 data Command = Pop Int       -- remove the top n values from the stack
@@ -77,9 +78,10 @@ processTokenPure (CmdT c)    st        = runCmd c st
 
 processOp :: Operator -> Stack -> Maybe Stack
 -- process an operator on the stack
--- returns Nothing iff there are not enough opperands, or the values are of invalid types
-processOp (Op1 op) (v : s)      = (: s) <$> op v
-processOp (Op2 op) (v : v' : s) = (: s) <$> op v' v
+-- returns Nothing iff there are not enough operands, or the values are of invalid types
+processOp (Op1 op) (v : s)      = (: s)  <$> op v
+processOp (Op2 op) (v : v' : s) = (: s)  <$> op v' v
+processOp (OpF op) (v : v' : s) = return <$> foldM op v (v' : s)
 processOp _        _            = Nothing
 
 
