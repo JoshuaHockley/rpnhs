@@ -9,6 +9,8 @@ import Error
 
 import System.Console.Haskeline
 import Data.List
+import Data.Maybe
+import Text.Read
 
 
 -- the context of the interactive mode (separate from the calculator)
@@ -38,10 +40,16 @@ handleInput :: Context -> State -> String -> InputT IO ()
 handleInput _ _ "q"  = return ()
 handleInput _ _ ":q" = return ()
 -- undo
-handleInput (ms, h) s ":u"
-  = case h of
-      (s' : h') -> run (ms, h') s'
-      _         -> run (ms, []) s
+handleInput (ms, h) s (stripPrefix ":u" -> Just n)
+  = run (ms, h') s'
+  where
+    (s', h') = undo $ fromMaybe 1 (readMaybe n)
+    undo :: Int -> (State, History)
+    undo n | n >= 1
+      = case drop (n - 1) h of
+          (s' : h') -> (s', h')
+          _         -> (emptyState, [])
+    undo _ = (s, h)
 -- macro definition
 handleInput (ms, h) s (stripPrefix ":def " -> Just m)
   = case parseMacro m of
