@@ -87,7 +87,7 @@ Operators pop 1-2 values from the top of the stack, and push back a single resul
 #### General
 | Operator            | Notes                               | Arity |
 | :------------------ | :---------------------------------- | :---- |
-| `abs`, `\|\|`       |                                     | 1     |
+| `abs`               |                                     | 1     |
 | `neg`, `negate`     |                                     | 1     |
 | `recip`             |                                     | 1     |
 | `sqrt`, `root`      |                                     | 1     |
@@ -100,7 +100,7 @@ Operators pop 1-2 values from the top of the stack, and push back a single resul
 | `div`, `/`          | true division                       | 2     |
 | `idiv`, `i/`        | integer division                    | 2     |
 | `mod`, `%`          | truncated towards negative infinity | 2     |
-| `pow`, `^`, `**`    |                                     | 2     |
+| `pow`, `^`          |                                     | 2     |
 | `log`               | `a b log` -> logb(a)                | 2     |
 
 #### Trigonometry
@@ -164,7 +164,7 @@ These operators consume the entire stack, leaving the final result in its place.
 | `++`            | `+`             |
 | `**`            | `*`             |
 | `&&`            | `&`             |
-| `||`            | `|`             |
+| `\|\|`          | `\|`            |
 
 Some care needs taken when using these operators. If there are values in the stack leftover from previous calculations, these will be included in the fold. The `c` command may be useful before setting up a fold.
 
