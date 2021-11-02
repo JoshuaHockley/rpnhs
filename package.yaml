@@ -3,6 +3,7 @@ name: rpnhs
 dependencies:
 - base >= 4.7 && < 5
 - haskeline
+- errors
 
 library:
   source-dirs: src

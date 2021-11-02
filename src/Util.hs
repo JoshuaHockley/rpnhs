@@ -2,8 +2,6 @@
 
 module Util where
 
-import Error
-
 import Data.List
 import Data.Bifunctor (first, second)
 
@@ -15,6 +13,7 @@ fmap2 = fmap . fmap
 
 (<<$>>) = fmap2
 infixl 4 <<$>>
+
 
 removeAt :: Int -> [a] -> Maybe (a, [a])
 -- remove the element at index n from a list
