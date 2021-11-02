@@ -1,7 +1,7 @@
 # rpnhs
-A basic reverse Polish notation calculator in Haskell
+A [reverse Polish notation](https://en.wikipedia.org/wiki/Reverse_Polish_notation) calculator in Haskell
 
-Inspired by [rpnpy](https://github.com/terrycojones/rpnpy). If you're looking for more control than rpnhs offers this may meet your needs.
+Inspired by [rpnpy](https://github.com/terrycojones/rpnpy).
 
 For convenience, you may want to alias rpnhs in your shell.\
 `alias hc='rpnhs'` (short for Haskell calculator)
@@ -13,6 +13,7 @@ For convenience, you may want to alias rpnhs in your shell.\
 * Use arbitrary bases for both input and output of integers, supporting radix complement (see [bases](#bases))
 * Load and store variables to and from the stack (see [variables](#variables))
 * Uses a fractional representation where possible to avoid floating point inaccuracies (`1/2 + 1/2 = 1`)
+* Define macros for constants or common patterns (e.g. `triple` -> `3 *`) (see [macros](#macros))
 
 ### Operation modes
 rpnhs provides 2 modes of operation:
@@ -57,25 +58,34 @@ error: operator failed
 
 To exit the calculator, enter `q`.
 
+##### Metacommands
+Metacommands begin with `:` and can only be used in interactive mode. They must occupy the entire line when used.
+| Metacommand        | Description                                            |
+| :----------------- | :----------------------------------------------------- |
+| `:q`               | Exit the calculator (same as `q`)                      |
+| `:u[n]`            | Undo the last `n` successful lines (default 1)         |
+| `:def [macro def]` | Define a new macro (see [macros](#macros) for details) |
+
+
 ### Commands
 Commands are instructions for interacting with the calculator in ways other than pushing values and applying operators.
-| command | description |
-| :--- | :--- |
-| `print`, `p`     | Print the value at the top of the stack (see [bases](#bases) for printing in other bases) |
-| `stack`, `f`     | Print all values in the stack, with the top value at the rightmost position |
-| `pop[n]`         | Pop the top `n` (default 1) values from the stack (without printing) |
-| `clear`, `c`     | Empty the stack |
-| `dup[n]`, `d[n]` | Duplicate the top value of the stack `n` times (default 1) |
-| `pull[n]`        | Pull the `n`th value on the stack to the top |
-| `swap`, `s`      | Swap the top 2 values on the stack (alias for `pull2`) |
+| Command          | Description                                                                                        |
+| :--------------- | :------------------------------------------------------------------------------------------------- |
+| `print`, `p`     | Print the value at the top of the stack (see [bases](#bases) for printing in other bases)          |
+| `stack`, `f`     | Print all values in the stack, with the top value at the rightmost position                        |
+| `pop[n]`         | Pop the top `n` (default 1) values from the stack (without printing)                               |
+| `clear`, `c`     | Empty the stack                                                                                    |
+| `dup[n]`, `d[n]` | Duplicate the top value of the stack `n` times (default 1)                                         |
+| `pull[n]`        | Pull the `n`th value on the stack to the top                                                       |
+| `swap`, `s`      | Swap the top 2 values on the stack (alias for `pull2`)                                             |
 | `s[name]`        | Pop the top value on the stack and store it in the variable `name`, overwriting any previous value |
-| `l[name]`        | Load the value in `name` and push it to the stack (fails if undefined) |
+| `l[name]`        | Load the value in `name` and push it to the stack (fails if undefined)                             |
 
 ### Operators
 Operators pop 1-2 values from the top of the stack, and push back a single result.
 
 #### General
-| operator            | notes                               | arity |
+| Operator            | Notes                               | Arity |
 | :------------------ | :---------------------------------- | :---- |
 | `abs`, `\|\|`       |                                     | 1     |
 | `neg`, `negate`     |                                     | 1     |
@@ -94,7 +104,7 @@ Operators pop 1-2 values from the top of the stack, and push back a single resul
 | `log`               | `a b log` -> logb(a)                | 2     |
 
 #### Trigonometry
-| operator           | arity |
+| Operator           | Arity |
 | :----------------- | :---- |
 | `sin`              | 1     |
 | `cos`              | 1     |
@@ -112,14 +122,14 @@ Operators pop 1-2 values from the top of the stack, and push back a single resul
 The above operators work with radians.
 
 To convert between radians and degrees the below operators are provided.
-| operator | notes              | arity |
+| Operator | Notes              | Arity |
 | :------- | :----------------- | :---- |
 | `deg`    | radians -> degrees | 1     |
 | `rad`    | degrees -> radians | 1     |
 
 
 #### Bitwise
-| operator      | arity |
+| Operator      | Arity |
 | :------------ | :---- |
 | `not`, `!`    | 1     |
 | `and`, `&`    | 2     |
@@ -132,12 +142,31 @@ Note that bitwise operators work on the two's complement representation of value
 `0 ! p` prints `-1`
 
 #### Misc
-| operator          | notes                                                                              | arity |
+| Operator          | Notes                                                                              | Arity |
 | :---------------- | :--------------------------------------------------------------------------------- | :---- |
 | `rnd`, `round`    | round to the nearest integer                                                       | 1     |
-| `floor`           | round to the greatest integer <= to the value                                      | 1     |
+| `floor`           | round to the greatest integer <= the value                                         | 1     |
 | `ceil`, `ceiling` | round to the least integer >= the value                                            | 1     |
 | `fl`, `float`     | convert a value to a float (useful if a fractional representation in inconvenient) | 1     |
+
+#### Folding operators
+For some binary operators a folding variant is available.\
+These operators consume the entire stack, leaving the final result in its place.
+```
+> 1 2 3 4 5 f
+ 1 2 3 4 5
+> ++ f
+ 15
+```
+
+| Folding variant | Binary operator |
+| :-------------- | :-------------- |
+| `++`            | `+`             |
+| `**`            | `*`             |
+| `&&`            | `&`             |
+| `||`            | `|`             |
+
+Some care needs taken when using these operators. If there are values in the stack leftover from previous calculations, these will be included in the fold. The `c` command may be useful before setting up a fold.
 
 ### Values
 Pushing values to the stack can be done in different forms.
@@ -160,7 +189,8 @@ A few constants are also available.
 See [bases](#bases) for declaring integers in different bases.
 
 ### Bases
-Base representations use digits 0-9, followed by characters a-z (lowercase). The maximum base supported is 36.
+Base representations use digits 0-9, followed by characters a-z (lowercase). The maximum base supported is 36.\
+There is no support for inputting or printing non-integer values in other bases.
 
 #### Input
 |     |     |
@@ -176,14 +206,14 @@ For binary, octal, and hex, the leading `0` is optional.
 `0x5a p` prints `90`\
 `3'12021 p` prints `142`
 
-When 'c' is given in the position indicated above, the input is interpreted as a radix complement representation (In binary, this is two's complement).
+When `c` is given in the position indicated above, the input is interpreted as a radix complement representation (In binary, this is two's complement).
 
 `0bc01001 p` prints `9`\
 `0bc1001 p` prints `-7`\
 `10c'856 p` prints `-144`
 
 #### Printing
-The `p` command (short for `print`) can be extended with base information.
+The `p` command can be extended with base information.
 |     |     |
 | --- | --- |
 | Binary   | `pb(c)`  |
@@ -220,5 +250,54 @@ Here's an example of the quadratic formula in use.
  5.0
 > lb neg lb 2 ^ 4 la * lc * - sqrt - 2 la * / p
  -3.0
+```
+
+### Macros
+
+Macros are single words that are expanded into a list of instructions.\
+They can be used to define new constants, avoid repetition of common patterns, or define new operators in terms of existing ones.
+
+To define a macro in interactive mode, use the `:def` metacommand.
+```
+> :def triple 3 *
+```
+The first word is the name of the macro, and the remaining line will be its expansion.
+
+Using macros is simple.
+```
+> 4 triple p
+ 12
+> 9 triple p
+ 27
+```
+
+Here are a few examples of macros you may find useful.
+```
+nroot  recip pow
+avg    scnt ++ lcnt /
+quad   sc sb sa lb neg lb 2 ^ 4 la * lc * - sqrt + 2 la * / lb neg lb 2 ^ 4 la * lc * - sqrt - 2 la * /
+```
+
+There are a few important things to note about macros:
+* Macros are expanded only once to avoid cycles, so never define a macro containing macros.
+* Macros are not validated on definition, so you may encounter confusing errors if your macro contains an error.
+* Macros cannot begin with `:`.
+
+#### Saved macros
+To avoid redefining the same macro between sessions, you can save them.\
+Saved macros are loaded from a macro file on start up, and are always available (including from inline mode).
+
+The following files are tried in order:
+*  `$RPNHS_MACRO_FILE`
+*  `~/.rpnhs_macros`
+*  `~/.config/rpnhs/macros`
+*  `$XDG_CONFIG_HOME/rpnhs/macros`
+
+The macro file should be a plain text file containing 1 macro definition per line. For example:
+```
+~/.rpnhs_macros
+----------------------
+nroot  recip pow
+avg    scnt ++ lcnt /
 ```
 
