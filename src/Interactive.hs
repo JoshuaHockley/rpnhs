@@ -8,9 +8,10 @@ import Macros (Macros, expandMacros, parseMacro)
 import Error
 
 import System.Console.Haskeline
-import Data.List
+import Control.Monad (mfilter)
+import Data.List (stripPrefix, isPrefixOf)
 import Data.Maybe
-import Text.Read
+import Text.Read (readMaybe)
 
 
 -- the context of the interactive mode (separate from the calculator)
@@ -43,13 +44,12 @@ handleInput _ _ ":q" = return ()
 handleInput (ms, h) s (stripPrefix ":u" -> Just n)
   = run (ms, h') s'
   where
-    (s', h') = undo $ fromMaybe 1 (readMaybe n)
+    (s', h') = maybe (s, h) undo n'
+    n'       = if null n then Just 1 else mfilter (>= 1) (readMaybe n)
     undo :: Int -> (State, History)
-    undo n | n >= 1
-      = case drop (n - 1) h of
-          (s' : h') -> (s', h')
-          _         -> (emptyState, [])
-    undo _ = (s, h)
+    undo n = case drop (n - 1) h of
+               (s' : h') -> (s', h')
+               _         -> (emptyState, [])
 -- macro definition
 handleInput (ms, h) s (stripPrefix ":def " -> Just m)
   = case parseMacro m of
