@@ -24,7 +24,8 @@ parseB compl b s = (if compl then fromRadixComp b (length s) else id)
                    <$> digitValues b s
   where
     digitValues :: Int -> String -> Result [Int]
-    digitValues b s = mapM digitValue s
+    digitValues _ "" = Err EmptyBaseLiteralE
+    digitValues b s  = mapM digitValue s
       where
         digitValue :: Char -> Result Int
         digitValue c = toResult (InvalidDigitE b c) $ mfilter (< b) (elemIndex c digits)

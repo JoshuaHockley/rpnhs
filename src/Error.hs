@@ -32,6 +32,7 @@ data Error = EmptyStackE               -- empty stack for a command that needs a
            | InvalidBaseSE String      -- base not an integer
            | InvalidBaseE Int          -- invalid base to print/read an integer
            | InvalidDigitE Int Char    -- invalid digit under a base
+           | EmptyBaseLiteralE         -- no digits given in a base literal
 
 
 -- user facing error description
@@ -47,6 +48,7 @@ instance Show Error where
   show (InvalidBaseSE s)    = "base error: invalid base (" ++ ")"
   show (InvalidBaseE i)     = "base error: invalid base (" ++ show i ++ ")"
   show (InvalidDigitE b c)  = "base error: " ++ c : " is an invalid digit under base " ++ show b
+  show EmptyBaseLiteralE    = "base error: empty base literal"
 
 
 -- Result behaves like Maybe as a monad
