@@ -16,7 +16,7 @@ noMacros = []
 
 
 expandMacros :: Macros -> [String] -> [String]
--- expand any occurences of macros in the strings
+-- expand any occurrences of macros in the strings
 -- expansion is performed only once
 expandMacros ms = concatMap expand
   where
@@ -26,16 +26,17 @@ expandMacros ms = concatMap expand
 
 
 parseMacros :: [String] -> Maybe Macros
-parseMacros = mapM parseMacro
+parseMacros = mapM parseMacro . filter macroLine
+  where
+    macroLine ('#' : _) = False
+    macroLine ""        = False
+    macroLine _         = True
 
 parseMacro :: String -> Maybe Macro
 parseMacro = parse . filter (not . null) . words
   where
-    parse (m : ss)
-      | validMacro m && not (null ss) = Just (m, ss)
-    parse _ = Nothing
-    validMacro (':' : _) = False
-    validMacro _         = True
+    parse (m : ss) | not (null ss) = Just (m, ss)
+    parse _                        = Nothing
 
 
 getSavedMacros :: IO Macros

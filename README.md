@@ -281,7 +281,6 @@ quad   sc sb sa lb neg lb 2 ^ 4 la * lc * - sqrt + 2 la * / lb neg lb 2 ^ 4 la *
 There are a few important things to note about macros:
 * Macros are expanded only once to avoid cycles, so never define a macro containing macros.
 * Macros are not validated on definition, so you may encounter confusing errors if your macro contains an error.
-* Macros cannot begin with `:`.
 
 #### Saved macros
 To avoid redefining the same macro between sessions, you can save them.\
@@ -293,11 +292,20 @@ The following files are tried in order:
 *  `~/.config/rpnhs/macros`
 *  `$XDG_CONFIG_HOME/rpnhs/macros`
 
-The macro file should be a plain text file containing 1 macro definition per line. For example:
+The macro file should be a plain text file containing 1 macro definition per line.\
+Empty lines and lines beginning with `#` are ignored.
+
+For example:
 ```
 ~/.rpnhs_macros
 ----------------------
+# nth root
+# 64 3 nroot -> 4
 nroot  recip pow
-avg    scnt ++ lcnt /
+
+# mean
+# c 8.2 4.3 10 5/2 4 avg -> 6.25
+# 4 is how many numbers are being averaged
+avg  scnt ++ lcnt /
 ```
 
