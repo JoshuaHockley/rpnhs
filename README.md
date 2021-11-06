@@ -131,15 +131,15 @@ To convert between radians and degrees the below operators are provided.
 #### Bitwise
 | Operator      | Arity |
 | :------------ | :---- |
-| `not`, `!`    | 1     |
+| `not`, `~`    | 1     |
 | `and`, `&`    | 2     |
-| `or`, `\|`    | 2     |
-| `nand`, `!&`  | 2     |
-| `nor`, `!\|`  | 2     |
+| `or`, `~|`    | 2     |
+| `nand`, `~&`  | 2     |
+| `nor`, `~\|`  | 2     |
 | `xor`         | 2     |
 
 Note that bitwise operators work on the two's complement representation of values.\
-`0 ! p` prints `-1`
+`0 ~ p` prints `-1`
 
 #### Misc
 | Operator          | Notes                                                                              | Arity |
