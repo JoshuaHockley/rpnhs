@@ -78,6 +78,7 @@ parseOperator = parseFromMap m
              (["exp", "e^"]         , Op1 opExp      ),
              (["ln"]                , Op1 opLn       ),
              (["log2"]              , Op1 opLog2     ),
+             (["fact", "!"]         , Op1 opFact     ),
              (["add", "plus", "+"]  , Op2 opAdd      ),
              (["sub", "minus", "-"] , Op2 opSubtract ),
              (["mul", "times", "*"] , Op2 opMultiply ),

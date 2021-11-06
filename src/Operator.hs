@@ -19,6 +19,7 @@ module Operator (
   opMod,
   opPower,
   opLog,
+  opFact,
   opSin,
   opCos,
   opTan,
@@ -134,6 +135,12 @@ opLn v = buildFOp1 log v
 
 -- log base 2
 opLog2 = opLog (I 2)
+
+-- factorial
+opFact v | isNeg v = Nothing
+opFact v = buildIOp1 fact v
+  where
+    fact i = product [1..i]
 
 -- addition
 opAdd = buildOp2' (+) (+) (+)

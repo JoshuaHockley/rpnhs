@@ -94,6 +94,7 @@ Operators pop 1-2 values from the top of the stack, and push back a single resul
 | `exp`, `e^`         |                                     | 1     |
 | `ln`                |                                     | 1     |
 | `log2`              |                                     | 1     |
+| `fact`, `!`         |                                     | 1     |
 | `add`, `plus`, `+`  |                                     | 2     |
 | `sub`, `minus`, `-` |                                     | 2     |
 | `mul`, `times`, `*` |                                     | 2     |
@@ -275,6 +276,8 @@ Here are a few examples of macros you may find useful.
 ```
 nroot  recip pow
 avg    scnt ++ lcnt /
+ncr    sr sn' ln' ! lr ! ln' lr - ! * i/
+npr    sr sn' ln' ! ln' lr - ! i/
 quad   sc sb sa lb neg lb 2 ^ 4 la * lc * - sqrt + 2 la * / lb neg lb 2 ^ 4 la * lc * - sqrt - 2 la * /
 ```
 
