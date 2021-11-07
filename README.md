@@ -1,5 +1,5 @@
 # rpnhs
-A [reverse Polish notation](https://en.wikipedia.org/wiki/Reverse_Polish_notation) calculator in Haskell
+A [reverse Polish notation](https://en.wikipedia.org/wiki/Reverse_Polish_notation) calculator in Haskell.
 
 Inspired by [rpnpy](https://github.com/terrycojones/rpnpy).
 
@@ -32,7 +32,7 @@ If execution fails, no output will be made to stdout, and an error message will 
 `rpnhs 1 2 + p hi` produces only `parse error: unrecognised token (hi)`
 
 #### Interactive
-To run the interactive mode, run rpnhs with no arguments.
+To run the interactive mode, run rpnhs with no arguments.\
 `rpnhs`
 
 You are then presented with a prompt to input any number of instructions. After pressing enter, the instructions will be executed, and the state of the calculator modified.
@@ -136,7 +136,7 @@ To convert between radians and degrees the below operators are provided.
 | :------------ | :---- |
 | `not`, `~`    | 1     |
 | `and`, `&`    | 2     |
-| `or`, `~|`    | 2     |
+| `or`, `\|`    | 2     |
 | `nand`, `~&`  | 2     |
 | `nor`, `~\|`  | 2     |
 | `xor`         | 2     |
