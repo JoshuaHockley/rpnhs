@@ -1,7 +1,6 @@
 module Value where
 
 import Data.Ratio
-import Data.Char (isSpace)
 
 -- a numeric value that can be operated on
 data Value = I Integer   -- integral value
@@ -46,9 +45,3 @@ instance Show Value where
   show (I i) = show i
   show (R r) = show (numerator r) ++ "/" ++ show (denominator r)
   show (F f) = show f
-
-showStack :: [Value] -> String
--- show the stack
--- reversed so operands are shown in the correct order: [ ... 2 3 ] -> 2 op 3
-showStack vs = trim $ concatMap ((' ' :) . show) (reverse vs)
-  where trim = dropWhile isSpace

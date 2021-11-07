@@ -8,8 +8,10 @@ import Bases
 import Error
 import Util (pullElem)
 
-import Data.Bifunctor (first, second)
 import Control.Monad
+import Data.Bifunctor (first, second)
+import Data.Maybe (maybeToList)
+import Data.Char (isSpace)
 
 
 -- the state of the calculator
@@ -105,10 +107,9 @@ runCmdPrint (Print desc) (v : _, _)
       Just (base, compl) -> return . showB compl base <$> toResult PrintBaseNonIntegerE (asI v)
       _                  -> Ok . return $ show v
 runCmdPrint (Print _)   _         = Err EmptyStackE
-runCmdPrint Stack       (s, _)    = Ok . return $ showStack s
+runCmdPrint Stack       (s, _)    = Ok . maybeToList $ showStack s
 runCmdPrint (View iden) (_, vars) = return . show <$> getVar iden vars
 runCmdPrint ViewAll     (_, vars) = Ok $ map showVar vars
-
 
 -- vars
 getVar :: String -> Vars -> Result Value
@@ -120,3 +121,13 @@ setVar iden v = ((iden, v) :) . filter (\(s, _) -> s /= iden)
 
 showVar :: (String, Value) -> String
 showVar (iden, v) = iden ++ " = " ++ show v
+
+
+-- stack
+showStack :: Stack -> Maybe String
+-- show the stack
+-- reversed so operands are shown in the correct order: [ ... 2 3 ] -> 2 op 3
+showStack [] = Nothing
+showStack vs = Just . trim . concatMap ((' ' :) . show) $ reverse vs
+  where trim = dropWhile isSpace
+
