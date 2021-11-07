@@ -64,9 +64,9 @@ parseToken' :: Parser Token
 -- the master parser, composes each parser and raise their types to Token
 parseToken' = composeParsers [operator, command, commandIO, value]  -- parsers to try (l to r)
   where operator  = fmap2 (TokenPure . OpT)  . parseOperator
-        value     = fmap2 (TokenPure . ValT) . parseValue
         command   = fmap2 (TokenPure . CmdT) . parseCommand
         commandIO = fmap2 CmdPrintT          . parseCommandIO
+        value     = fmap2 (TokenPure . ValT) . parseValue
 
 
 parseOperator :: Parser Operator
@@ -133,10 +133,11 @@ parseCommand = composeParsers [parseFromMap m, parsePop, parseDup, parsePull, pa
 
 
 parseCommandIO :: Parser CommandPrint
-parseCommandIO = composeParsers [parseFromMap m, parsePrint]
+parseCommandIO = composeParsers [parseFromMap m, parsePrint, parseView]
   where
     m = [(["print", "p"] , Print Nothing ),
-         (["stack", "f"] , Stack         )]
+         (["stack", "f"] , Stack         ),
+         (["view", "v"]  , ViewAll       )]
 
     -- p'n(c) : print in base n
     -- pb(c)  : print in base 2
@@ -165,6 +166,8 @@ parseCommandIO = composeParsers [parseFromMap m, parsePrint]
         parseBin = parseBaseChar 2  'b'
         parseOct = parseBaseChar 8  'o'
         parseHex = parseBaseChar 16 'x'
+    
+    parseView s = Ok . View <$> stripPrefix "v" s
 
 
 parseValue = composeParsers [parseVI, parseVR, parseVF, parseVNeg, parseVBased, parseVConst]

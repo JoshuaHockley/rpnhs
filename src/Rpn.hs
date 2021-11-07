@@ -46,6 +46,7 @@ data CommandPrint = Print (Maybe (Int, Bool))  -- print the value at the top of 
                                                -- optional base desc (base, use radix complement)
                   | Stack                      -- print the entire stack
                   | View String                -- print the value of a variable
+                  | ViewAll                    -- print all variables with their values
 
 -- mapping of identifiers to Values
 type Vars = [(String, Value)]
@@ -58,16 +59,16 @@ rpn st = fmap (second reverse) . foldl rpn' (Ok (st, []))
   where
     rpn' :: Result (State, [String]) -> Token -> Result (State, [String])
     rpn' r t = do
-      (st, out)   <- r
-      (st', line) <- processToken t st
-      let out' = maybe out (: out) line
+      (st, out)    <- r
+      (st', lines) <- processToken t st
+      let out' = reverse lines ++ out
       Ok (st', out')
 
 
-processToken :: Token -> State -> Result (State, Maybe String)
+processToken :: Token -> State -> Result (State, [String])
 -- process a token with the stack, with possible output
-processToken (TokenPure t) st = (, Nothing)   <$> processTokenPure t st
-processToken (CmdPrintT c) st = (st, ) . Just <$> runCmdPrint c st
+processToken (TokenPure t) st = (, []) <$> processTokenPure t st
+processToken (CmdPrintT c) st = (st, ) <$> runCmdPrint c st
 
 processTokenPure :: TokenPure -> State -> Result State
 -- process a pure token with the state
@@ -97,15 +98,16 @@ runCmd (Store _)    _             = Err EmptyStackE
 runCmd (Load iden)  (s, vars)     = (, vars) . (: s) <$> getVar iden vars
 
 
-runCmdPrint :: CommandPrint -> State -> Result String
+runCmdPrint :: CommandPrint -> State -> Result [String]
 -- run an print command from the state
 runCmdPrint (Print desc) (v : _, _)
   = case desc of
-      Just (base, compl) -> showB compl base <$> toResult PrintBaseNonIntegerE (asI v)
-      _                  -> Ok $ show v
-runCmdPrint (Print _)    _        = Err EmptyStackE
-runCmdPrint Stack        (s, _)   = Ok $ showStack s
-runCmdPrint (View iden) (_, vars) = show <$> getVar iden vars
+      Just (base, compl) -> return . showB compl base <$> toResult PrintBaseNonIntegerE (asI v)
+      _                  -> Ok . return $ show v
+runCmdPrint (Print _)   _         = Err EmptyStackE
+runCmdPrint Stack       (s, _)    = Ok . return $ showStack s
+runCmdPrint (View iden) (_, vars) = return . show <$> getVar iden vars
+runCmdPrint ViewAll     (_, vars) = Ok $ map showVar vars
 
 
 -- vars
@@ -115,3 +117,6 @@ getVar iden = toResult (UndefinedVarE iden) . lookup iden
 setVar :: String -> Value -> Vars -> Vars
 -- set a variable, overwriting if the identifier is already in use
 setVar iden v = ((iden, v) :) . filter (\(s, _) -> s /= iden)
+
+showVar :: (String, Value) -> String
+showVar (iden, v) = iden ++ " = " ++ show v

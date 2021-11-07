@@ -80,6 +80,8 @@ Commands are instructions for interacting with the calculator in ways other than
 | `swap`, `s`      | Swap the top 2 values on the stack (alias for `pull2`)                                             |
 | `s[name]`        | Pop the top value on the stack and store it in the variable `name`, overwriting any previous value |
 | `l[name]`        | Load the value in `name` and push it to the stack (fails if undefined)                             |
+| `view`, `v`      | View the values of all variables                                                                   |
+| `v[name]`        | View the value in `name`                                                                           |
 
 ### Operators
 Operators pop 1-2 values from the top of the stack, and push back a single result.
