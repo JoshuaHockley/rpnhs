@@ -39,30 +39,32 @@ parseMacro = parse . filter (not . null) . words
     parse _                        = Nothing
 
 
-getSavedMacros :: IO Macros
+getSavedMacros :: Maybe FilePath -> IO Macros
 -- read saved macros from a config file
 -- the following paths are tried in order
+--   filepath provided in Maybe
 --   $RPNHS_MACRO_FILE
 --   ~/.rpnhs_macros
 --   ~/.config/rpnhs/macros
 --   $XDG_CONFIG_HOME/rpnhs/macros
 -- if no config file can be found, no macros are loaded
 -- if an invalid config file is found, no macros are loaded and no other paths are tried
-getSavedMacros = handleConf <$> getConfig
+getSavedMacros fp = handleConf <$> getConfig fp
   where
     handleConf (Just conf) = fromMaybe noMacros . parseMacros . filter (not . null) $ lines conf
     handleConf _           = noMacros
 
-    getConfig :: IO (Maybe String)
-    getConfig = headMay . catMaybes <$> confs
+    getConfig :: Maybe FilePath -> IO (Maybe String)
+    getConfig (Just fp) = tryFile . tryIO $ readFile fp
+    getConfig _         = headMay . catMaybes <$> confs
 
     confs :: IO [Maybe String]
     confs = mapM tryFile [tryIO $ getEnv "RPNHS_MACRO_FILE",
                           (<> "/.rpnhs_macros")        <$> home,
                           (<> "/.config/rpnhs/macros") <$> home,
                           (<> "/rpnhs/macros")         <$> tryIO (getEnv "XDG_CONFIG_HOME")]
-      where
-        tryFile :: ExceptT IOError IO FilePath -> IO (Maybe String)
-        -- try to read the contents of a file at a path
-        tryFile ep = fmap hush . runExceptT $ (tryIO . readFile =<< ep)
-        home = tryIO $ getEnv "HOME"
+
+    tryFile :: ExceptT IOError IO FilePath -> IO (Maybe String)
+    -- try to read the contents of a file at a path
+    tryFile ep = fmap hush . runExceptT $ (tryIO . readFile =<< ep)
+    home = tryIO $ getEnv "HOME"

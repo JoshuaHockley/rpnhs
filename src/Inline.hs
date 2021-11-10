@@ -9,10 +9,13 @@ import System.IO
 import System.Exit
 
 
-runInline :: Macros -> [String] -> IO ()
-runInline ms args = do
+runInline :: Macros -> Bool -> [String] -> IO ()
+runInline ms autoPrint args = do
   case rpn emptyState =<< tokens of
-    Ok (_, out) -> mapM_ putStrLn out >> exitSuccess
-    Err e       -> hPrint stderr e    >> exitFailure
+    Ok ((s, _), out) -> success s out   >> exitSuccess
+    Err e            -> hPrint stderr e >> exitFailure
   where
     tokens = mapM parseToken . expandMacros ms $ concatMap words args
+    success (v : _) []
+      | autoPrint = print v
+    success _ out = mapM_ putStrLn out

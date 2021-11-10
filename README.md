@@ -15,6 +15,14 @@ For convenience, you may want to alias rpnhs in your shell.\
 * Uses a fractional representation where possible to avoid floating point inaccuracies (`1/2 + 1/2 = 1`)
 * Define macros for constants or common patterns (e.g. `triple` -> `3 *`) (see [macros](#macros))
 
+### Commandline options
+```
+-p,--auto-print          Auto print if no output is produced from inline mode
+--prompt PROMPT          Set the interactive mode prompt
+-m,--macro-file FILE     Load a given macro file on startup
+-h,--help                Show this help text
+```
+
 ### Operation modes
 rpnhs provides 2 modes of operation:
 * Inline - process commandline arguments and print to stdout, for scripts or quick and simple calculations.
@@ -292,6 +300,7 @@ To avoid redefining the same macro between sessions, you can save them.\
 Saved macros are loaded from a macro file on start up, and are always available (including from inline mode).
 
 The following files are tried in order:
+*  A file supplied to the `--macro-file` option
 *  `$RPNHS_MACRO_FILE`
 *  `~/.rpnhs_macros`
 *  `~/.config/rpnhs/macros`

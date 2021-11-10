@@ -30,6 +30,7 @@ library
       base >=4.7 && <5
     , errors
     , haskeline
+    , optparse-applicative
   default-language: Haskell2010
 
 executable rpnhs
@@ -43,6 +44,7 @@ executable rpnhs
       base >=4.7 && <5
     , errors
     , haskeline
+    , optparse-applicative
     , rpnhs
   default-language: Haskell2010
 
@@ -58,5 +60,6 @@ test-suite rpnhs-test
       base >=4.7 && <5
     , errors
     , haskeline
+    , optparse-applicative
     , rpnhs
   default-language: Haskell2010
