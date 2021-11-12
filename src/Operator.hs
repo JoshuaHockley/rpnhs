@@ -161,7 +161,7 @@ opDivide v v' = buildOp2' Nothing (Just (/)) (Just (/)) v v'
 
 -- integer division
 opIDivide _ v | isZero v = Nothing
-opIDivide v v' = buildIOp2' div v v'
+opIDivide v v' = buildTOp2 (I .: div) (I .: div') (I .: div') v v'
 
 -- modulo
 opMod _ v | isZero v = Nothing
