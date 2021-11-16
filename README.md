@@ -206,10 +206,10 @@ There is no support for inputting or printing non-integer values in other bases.
 #### Input
 |     |     |
 | --- | --- |
-| Binary   | `0b(c)...` |
-| Octal    | `0o(c)...` |
-| Hex      | `0x(c)...` |
-| Base `n` | `n(c)'...` |
+| Binary   | `0b(~)...` |
+| Octal    | `0o(~)...` |
+| Hex      | `0x(~)...` |
+| Base `n` | `n(~)'...` |
 
 For binary, octal, and hex, the leading `0` is optional.
 
@@ -217,31 +217,31 @@ For binary, octal, and hex, the leading `0` is optional.
 `0x5a p` prints `90`\
 `3'12021 p` prints `142`
 
-When `c` is given in the position indicated above, the input is interpreted as a radix complement representation (In binary, this is two's complement).
+When `~` is given in the position indicated above, the input is interpreted as a radix complement representation (In binary, this is two's complement).
 
 `0bc01001 p` prints `9`\
-`0bc1001 p` prints `-7`\
-`10c'856 p` prints `-144`
+`0b~1001 p` prints `-7`\
+`10~'856 p` prints `-144`
 
 #### Printing
 The `p` command can be extended with base information.
 |     |     |
 | --- | --- |
-| Binary   | `pb(c)`  |
-| Octal    | `po(c)`  |
-| Hex      | `px(c)`  |
-| Base `n` | `p'n(c)` |
+| Binary   | `pb(~)`  |
+| Octal    | `po(~)`  |
+| Hex      | `px(~)`  |
+| Base `n` | `p'n(~)` |
 
 `9 pb` prints `1001`\
 `90 px` prints `5a`\
 `142 p'3` prints `12021`\
 `-9 pb` prints `-1001`
 
-When `c` is given in the position indicated above, the value is printed in a radix complement representation (In binary, this is two's complement).
+When `~` is given in the position indicated above, the value is printed in a radix complement representation (In binary, this is two's complement).
 
-`9 pbc` prints `01001`\
-`-7 pbc` prints `1001`\
-`-144 p'10c` prints `856`
+`9 pb~` prints `01001`\
+`-7 pb~` prints `1001`\
+`-144 p'10~` prints `856`
 
 ### Variables
 Loading and storing variables is done with the `l` and `s` [commands](#commands).\

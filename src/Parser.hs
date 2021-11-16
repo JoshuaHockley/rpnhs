@@ -154,13 +154,13 @@ parseCommandIO = composeParsers [parseFromMap m, parsePrint, parseView]
               b' <- assert validBase (InvalidBaseE b) b
               return $ Print (Just (b', compl))
               where
-                (s, compl) = stripEndChar 'c' form
+                (s, compl) = stripEndChar '~' form
 
         -- b/o/x form
         parseBaseChar b c s = Ok . makePrint <$> (checkCompl =<< stripPrefix ('p' : [c]) s)
           where
             makePrint compl = Print (Just (b, compl))
-            checkCompl "c" = Just True   -- e.g. pxc
+            checkCompl "~" = Just True   -- e.g. px~
             checkCompl ""  = Just False  -- e.g. px
             checkCompl _   = Nothing     -- e.g. pxhi
         parseBin = parseBaseChar 2  'b'
@@ -188,10 +188,10 @@ parseValue = composeParsers [parseVI, parseVR, parseVF, parseVNeg, parseVBased, 
     -- -[val]
     parseVNeg s = negateVal <<$>> (parseValue =<< stripPrefix "-" s)
 
-    -- n(c)'[int]    : base n literal
-    -- (0)b(c)[int]  : base 2 literal
-    -- (0)o(c)[int]  : base 8 literal
-    -- (0)x(c)[int]  : base 16 literal
+    -- n(~)'[int]     : base n literal
+    -- (0)b(~)[int]   : base 2 literal
+    -- (0)o(~)[int]   : base 8 literal
+    -- (0)x(~)[int]   : base 16 literal
     -- literals are interpretted as radix complement form when 'c' is given
     parseVBased = fmap2 I . composeParsers [parseBaseN, parseBin, parseOct, parseHex]
       where
@@ -203,14 +203,14 @@ parseValue = composeParsers [parseVI, parseVR, parseVF, parseVNeg, parseVBased, 
               b' <- assert validBase (InvalidBaseE b) b
               parseB compl b' lit
               where
-                (base, compl) = stripEndChar 'c' form
+                (base, compl) = stripEndChar '~' form
 
         -- b/o/x form
         parseBaseChar b c s = parseBaseChar' <$> stripPrefixes s ['0' : [c], [c]]
           where
             parseBaseChar' s = parseB compl b lit
               where
-                (lit, compl) = stripChar 'c' s
+                (lit, compl) = stripChar '~' s
         parseBin = parseBaseChar 2  'b'
         parseOct = parseBaseChar 8  'o'
         parseHex = parseBaseChar 16 'x'
