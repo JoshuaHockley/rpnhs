@@ -107,6 +107,8 @@ parseOperator = parseFromMap m
              (["nand", "~&"]        , Op2 opNand     ),
              (["nor", "~|"]         , Op2 opNor      ),
              (["xor"]               , Op2 opXor      ),
+             (["lshift", "<<"]      , Op2 opLShift   ),
+             (["rshift", ">>"]      , Op2 opRShift   ),
              (["rnd", "round"]      , Op1 opRnd      ),
              (["floor"]             , Op1 opFloor    ),
              (["ceil", "ceiling"]   , Op1 opCeil     ),

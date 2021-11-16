@@ -40,6 +40,8 @@ module Operator (
   opNand,
   opNor,
   opXor,
+  opLShift,
+  opRShift,
   opRnd,
   opFloor,
   opCeil,
@@ -207,6 +209,10 @@ opOr   = buildIOp2' (.|.)
 opNand = buildIOp2' (complement .: (.&.))
 opNor  = buildIOp2' (complement .: (.|.))
 opXor  = buildIOp2' xor
+
+-- shifts
+opLShift = buildIOp2' (\i i' -> shift i (fromInteger i'))
+opRShift v v' = opLShift v (negateVal v')
 
 -- misc
 opRnd   = buildRounder round   round

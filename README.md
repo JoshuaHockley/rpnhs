@@ -152,6 +152,20 @@ To convert between radians and degrees the below operators are provided.
 Note that bitwise operators work on the two's complement representation of values.\
 `0 ~ p` prints `-1`
 
+#### Binary shifts
+| Operator       | Arity |
+| :------------- | :---- |
+| `lshift`, `<<` | 2     |
+| `rshift`, `>>` | 2     |
+
+`0b10010 2 << pb` prints `1001000`
+
+Right shifts are sign extended, so behaviour with negative values should be intuitive.\
+`-40 2 >> p` prints `-10`
+
+When provided a negative shift amount, the shift will be made in the opposite direction.\
+`n <<` will act the same as `-n >>`
+
 #### Misc
 | Operator          | Notes                                                                              | Arity |
 | :---------------- | :--------------------------------------------------------------------------------- | :---- |
@@ -177,7 +191,7 @@ These operators consume the entire stack, leaving the final result in its place.
 | `&&`            | `&`             |
 | `\|\|`          | `\|`            |
 
-Some care needs taken when using these operators. If there are values in the stack leftover from previous calculations, these will be included in the fold. The `c` command may be useful before setting up a fold.
+Some care should be taken when using these operators. If there are values in the stack leftover from previous calculations, these will be included in the fold. The `c` command may be useful before setting up a fold.
 
 ### Values
 Pushing values to the stack can be done in different forms.
