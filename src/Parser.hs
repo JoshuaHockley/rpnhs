@@ -123,11 +123,11 @@ parseOperator = parseFromMap m
 parseCommand :: Parser Command
 parseCommand = composeParsers [parseFromMap m, parsePop, parseDup, parsePull, parseStore, parseLoad]
   where
-    m = [(["pop"]        , Pop 1  ),
+    m = [(["pop", "r"]   , Pop 1  ),
          (["clear", "c"] , Clear  ),
          (["dup", "d"]   , Dup 1  ),
          (["swap", "s"]  , Pull 2 )]  -- alias for pull2
-    parsePop     = parseWithInt ["pop"]      Pop
+    parsePop     = parseWithInt ["pop", "r"] Pop
     parseDup     = parseWithInt ["dup", "d"] Dup
     parsePull    = parseWithInt ["pull"]     Pull
     parseStore s = Ok . Store <$> mfilter (/= "") (stripPrefix "s" s)

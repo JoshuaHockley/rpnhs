@@ -81,7 +81,7 @@ Commands are instructions for interacting with the calculator in ways other than
 | :--------------- | :------------------------------------------------------------------------------------------------- |
 | `print`, `p`     | Print the value at the top of the stack (see [bases](#bases) for printing in other bases)          |
 | `stack`, `f`     | Print all values in the stack, with the top value at the rightmost position                        |
-| `pop[n]`         | Pop the top `n` (default 1) values from the stack (without printing)                               |
+| `pop[n]`, `r`    | Pop the top `n` (default 1) values from the stack (without printing)                               |
 | `clear`, `c`     | Empty the stack                                                                                    |
 | `dup[n]`, `d[n]` | Duplicate the top value of the stack `n` times (default 1)                                         |
 | `pull[n]`        | Pull the `n`th value on the stack to the top                                                       |
