@@ -21,7 +21,8 @@ expandMacros :: Macros -> [String] -> [String]
 expandMacros ms = concatMap expand
   where
     expand s = case lookup s ms of
-                 Just ss -> ss
+                 Just ss -> expandMacros ms' ss
+                   where ms' = filter ((/= s) . fst) ms
                  _       -> [s]
 
 

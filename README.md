@@ -305,9 +305,25 @@ npr    sr sn' ln' ! ln' lr - ! i/
 quad   sc sb sa lb neg lb 2 ^ 4 la * lc * - sqrt + 2 la * / lb neg lb 2 ^ 4 la * lc * - sqrt - 2 la * /
 ```
 
-There are a few important things to note about macros:
-* Macros are expanded only once to avoid cycles, so never define a macro containing macros.
-* Macros are not validated on definition, so you may encounter confusing errors if your macro contains an error.
+Macro definitions can contain other macros themselves.\
+```
+> :def triple 3 *
+> :def inc 1 +
+> :def tripinc triple inc
+> 4 tripinc p
+ 13
+```
+
+Macros cannot contain themselves. This includes an indirect reference through other macros.\
+```
+> :def a b
+> :def b a
+```
+Attempting to use such a macro will produce the following error:\
+```
+> a
+parse error: unrecognised token (a)
+```
 
 #### Saved macros
 To avoid redefining the same macro between sessions, you can save them.\

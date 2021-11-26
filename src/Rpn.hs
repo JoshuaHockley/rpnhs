@@ -74,9 +74,9 @@ processToken (CmdPrintT c) st = (st, ) <$> runCmdPrint c st
 
 processTokenPure :: TokenPure -> State -> Result State
 -- process a pure token with the state
-processTokenPure (ValT v)    (s, vars) = Ok (v : s, vars)
-processTokenPure (OpT op)    (s, vars) = (, vars) <$> toResult OperatorFailureE (processOp op s)
-processTokenPure (CmdT c)    st        = runCmd c st
+processTokenPure (ValT v) (s, vars) = Ok (v : s, vars)
+processTokenPure (OpT op) (s, vars) = (, vars) <$> toResult OperatorFailureE (processOp op s)
+processTokenPure (CmdT c) st        = runCmd c st
 
 
 processOp :: Operator -> Stack -> Maybe Stack
@@ -117,7 +117,7 @@ getVar iden = toResult (UndefinedVarE iden) . lookup iden
 
 setVar :: String -> Value -> Vars -> Vars
 -- set a variable, overwriting if the identifier is already in use
-setVar iden v = ((iden, v) :) . filter (\(s, _) -> s /= iden)
+setVar iden v = ((iden, v) :) . filter ((/= iden) . fst)
 
 showVar :: (String, Value) -> String
 showVar (iden, v) = iden ++ " = " ++ show v
@@ -126,7 +126,7 @@ showVar (iden, v) = iden ++ " = " ++ show v
 -- stack
 showStack :: Stack -> Maybe String
 -- show the stack
--- reversed so operands are shown in the correct order: [ ... 2 3 ] -> 2 op 3
+-- reversed so operands are shown in the correct order: "... 2 3" -> 2 op 3
 showStack [] = Nothing
 showStack vs = Just . trim . concatMap ((' ' :) . show) $ reverse vs
   where trim = dropWhile isSpace
