@@ -126,7 +126,8 @@ parseCommand = composeParsers [parseFromMap m, parsePop, parseDup, parsePull, pa
     m = [(["pop", "r"]   , Pop 1  ),
          (["clear", "c"] , Clear  ),
          (["dup", "d"]   , Dup 1  ),
-         (["swap", "s"]  , Pull 2 )]  -- alias for pull2
+         (["swap", "s"]  , Pull 2 ),  -- alias for pull2
+         (["depth", "z"] , Depth  )]
     parsePop     = parseWithInt ["pop", "r"] Pop
     parseDup     = parseWithInt ["dup", "d"] Dup
     parsePull    = parseWithInt ["pull"]     Pull

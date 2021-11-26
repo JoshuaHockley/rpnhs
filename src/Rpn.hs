@@ -42,6 +42,7 @@ data Command = Pop Int       -- remove the top n values from the stack
              | Pull Int      -- pull the nth value (n >= 1) to the top of the stack
              | Store String  -- pop the top of the stack and store it in a variable
              | Load String   -- load a variable onto the stack
+             | Depth         -- push the depth of the stack
 
 -- a command that produces an string to print
 data CommandPrint = Print (Maybe (Int, Bool))  -- print the value at the top of the stack
@@ -95,6 +96,7 @@ runCmd Clear        (s, vars)     = Ok ([], vars)
 runCmd (Dup n)      (v : s, vars) = Ok (replicate (n + 1) v ++ s, vars)
 runCmd (Dup _)      _             = Err EmptyStackE
 runCmd (Pull n)     (s, vars)     = (, vars) <$> toResult PullE (pullElem (n - 1) s)
+runCmd Depth        (s, vars)     = Ok (I d : s, vars) where d = toInteger (length s)
 runCmd (Store iden) (v : s, vars) = Ok (s, setVar iden v vars)
 runCmd (Store _)    _             = Err EmptyStackE
 runCmd (Load iden)  (s, vars)     = (, vars) . (: s) <$> getVar iden vars

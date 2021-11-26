@@ -86,6 +86,7 @@ Commands are instructions for interacting with the calculator in ways other than
 | `dup[n]`, `d[n]` | Duplicate the top value of the stack `n` times (default 1)                                         |
 | `pull[n]`        | Pull the `n`th value on the stack to the top                                                       |
 | `swap`, `s`      | Swap the top 2 values on the stack (alias for `pull2`)                                             |
+| `depth`, `z`     | Push the current depth of the stack                                                                |
 | `s[name]`        | Pop the top value on the stack and store it in the variable `name`, overwriting any previous value |
 | `l[name]`        | Load the value in `name` and push it to the stack (fails if undefined)                             |
 | `view`, `v`      | View the values of all variables                                                                   |
@@ -299,7 +300,7 @@ Using macros is simple.
 Here are a few examples of macros you may find useful.
 ```
 nroot  recip pow
-avg    scnt ++ lcnt /
+avg    z scnt ++ lcnt /
 ncr    sr sn' ln' ! lr ! ln' lr - ! * i/
 npr    sr sn' ln' ! ln' lr - ! i/
 quad   sc sb sa lb neg lb 2 ^ 4 la * lc * - sqrt + 2 la * / lb neg lb 2 ^ 4 la * lc * - sqrt - 2 la * /
@@ -348,8 +349,7 @@ For example:
 nroot  recip pow
 
 # mean
-# c 8.2 4.3 10 5/2 4 avg -> 6.25
-# 4 is how many numbers are being averaged
-avg  scnt ++ lcnt /
+# c 8.2 4.3 10 5/2 avg -> 6.25
+avg  z scnt ++ lcnt /
 ```
 
