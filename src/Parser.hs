@@ -58,15 +58,22 @@ parseWithInt :: [String] -> (Int -> a) -> Parser a
 parseWithInt prefixes handler s
   = Ok . handler <$> mfilter (>= 1) (readMaybe =<< stripPrefixes s prefixes)
 
+parseWithStr :: String -> (String -> a) -> Parser a
+-- generate a parser for a prefix followed by a non-empty string
+parseWithStr prefix handler s = Ok . handler <$> mfilter (/= "") (stripPrefix prefix s)
 
 -- parsers
 parseToken' :: Parser Token
 -- the master parser, composes each parser and raise their types to Token
-parseToken' = composeParsers [operator, command, commandIO, value]  -- parsers to try (l to r)
+parseToken' = composeParsers [operator, command, commandIO, value, jump, branch, parseFromMap m]  -- parsers to try (l to r)
   where operator  = fmap2 (TokenPure . OpT)  . parseOperator
         command   = fmap2 (TokenPure . CmdT) . parseCommand
         commandIO = fmap2 CmdPrintT          . parseCommandIO
         value     = fmap2 (TokenPure . ValT) . parseValue
+        jump      = parseWithStr "J" (Jump False)
+        branch    = parseWithStr "B" (Jump True)
+        m = [(["RET"], RetT),
+             (["ERR"], ErrT)]
 
 
 parseOperator :: Parser Operator
@@ -109,6 +116,12 @@ parseOperator = parseFromMap m
              (["xor"]               , Op2 opXor      ),
              (["lshift", "<<"]      , Op2 opLShift   ),
              (["rshift", ">>"]      , Op2 opRShift   ),
+             (["lt", "<"]           , Op2 opLt       ),
+             (["lte", "<="]         , Op2 opLte      ),
+             (["eq", "==", "="]     , Op2 opEq       ),
+             (["neq", "!="]         , Op2 opNeq      ),
+             (["gte", ">="]         , Op2 opGte      ),
+             (["gt", ">"]           , Op2 opGt       ),
              (["rnd", "round"]      , Op1 opRnd      ),
              (["floor"]             , Op1 opFloor    ),
              (["ceil", "ceiling"]   , Op1 opCeil     ),
@@ -128,11 +141,11 @@ parseCommand = composeParsers [parseFromMap m, parsePop, parseDup, parsePull, pa
          (["dup", "d"]   , Dup 1  ),
          (["swap", "s"]  , Pull 2 ),  -- alias for pull2
          (["depth", "z"] , Depth  )]
-    parsePop     = parseWithInt ["pop", "r"] Pop
-    parseDup     = parseWithInt ["dup", "d"] Dup
-    parsePull    = parseWithInt ["pull"]     Pull
-    parseStore s = Ok . Store <$> mfilter (/= "") (stripPrefix "s" s)
-    parseLoad  s = Ok . Load  <$> mfilter (/= "") (stripPrefix "l" s)
+    parsePop    = parseWithInt ["pop", "r"] Pop
+    parseDup    = parseWithInt ["dup", "d"] Dup
+    parsePull   = parseWithInt ["pull"]     Pull
+    parseStore  = parseWithStr "s"          Store
+    parseLoad   = parseWithStr "l"          Load
 
 
 parseCommandIO :: Parser CommandPrint
@@ -154,8 +167,8 @@ parseCommandIO = composeParsers [parseFromMap m, parsePrint, parseView]
           where
             parseBaseN' form = do
               b  <- toResult (InvalidBaseSE s) (readMaybe s)
-              b' <- assert validBase (InvalidBaseE b) b
-              return $ Print (Just (b', compl))
+              assert (validBase b) (InvalidBaseE b)
+              return $ Print (Just (b, compl))
               where
                 (s, compl) = stripEndChar '~' form
 
@@ -169,7 +182,7 @@ parseCommandIO = composeParsers [parseFromMap m, parsePrint, parseView]
         parseBin = parseBaseChar 2  'b'
         parseOct = parseBaseChar 8  'o'
         parseHex = parseBaseChar 16 'x'
-    
+
     parseView s = Ok . View <$> stripPrefix "v" s
 
 
@@ -203,8 +216,8 @@ parseValue = composeParsers [parseVI, parseVR, parseVF, parseVNeg, parseVBased, 
           where
             parseBaseN' (form, lit) = do
               b  <- toResult (InvalidBaseSE s) (readMaybe base)
-              b' <- assert validBase (InvalidBaseE b) b
-              parseB compl b' lit
+              assert (validBase b) (InvalidBaseE b)
+              parseB compl b lit
               where
                 (base, compl) = stripEndChar '~' form
 

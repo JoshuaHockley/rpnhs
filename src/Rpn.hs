@@ -25,6 +25,10 @@ type Stack = [Value]
 -- a valid token
 data Token = TokenPure TokenPure
            | CmdPrintT CommandPrint
+           | Jump Bool String  -- jump to a label
+                               -- if flag is set, only jump when the top of the stack is non-zero
+           | RetT
+           | ErrT
 
 -- a token that has a pure effect on the state
 data TokenPure = ValT Value
@@ -36,13 +40,13 @@ data Operator = Op1 Operator1
               | OpF Operator2  -- folding operator
 
 -- a command that modifies the state
-data Command = Pop Int       -- remove the top n values from the stack
-             | Clear         -- clear all values from the stack
-             | Dup Int       -- repush the value at the top of the stack n times
-             | Pull Int      -- pull the nth value (n >= 1) to the top of the stack
-             | Store String  -- pop the top of the stack and store it in a variable
-             | Load String   -- load a variable onto the stack
-             | Depth         -- push the depth of the stack
+data Command = Pop Int        -- remove the top n values from the stack
+             | Clear          -- clear all values from the stack
+             | Dup Int        -- repush the value at the top of the stack n times
+             | Pull Int       -- pull the nth value (n >= 1) to the top of the stack
+             | Store String   -- pop the top of the stack and store it in a variable
+             | Load String    -- load a variable onto the stack
+             | Depth          -- push the depth of the stack
 
 -- a command that produces an string to print
 data CommandPrint = Print (Maybe (Int, Bool))  -- print the value at the top of the stack
@@ -54,24 +58,41 @@ data CommandPrint = Print (Maybe (Int, Bool))  -- print the value at the top of 
 -- mapping of identifiers to Values
 type Vars = [(String, Value)]
 
+-- mapping of labels to programs
+type JumpTable = [(String, [Token])]
 
-rpn :: State -> [Token] -> Result (State, [String])
+
+rpn :: JumpTable -> State -> [Token] -> Result (State, [String])
 -- run the calulator on a list of tokens
 -- returns the final state and a list of output to print
-rpn st = fmap (second reverse) . foldl rpn' (Ok (st, []))
+rpn jtable = rpn'
   where
-    rpn' :: Result (State, [String]) -> Token -> Result (State, [String])
-    rpn' r t = do
-      (st, out)    <- r
-      (st', lines) <- processToken t st
-      let out' = reverse lines ++ out
-      Ok (st', out')
+    rpn' :: State -> [Token] -> Result (State, [String])
+    rpn' st (t : ts)
+      = case t of
+          TokenPure t -> do
+            st' <- processTokenPure t st
+            rpn' st' ts
+          CmdPrintT c -> do
+            l <- runCmdPrint c st
+            (st', out) <- rpn' st ts
+            return (st', l ++ out)
+          Jump True l -> do
+            cond <- checkCond st
+            let st' = first (drop 1) st
+            if cond then jump st' l
+                    else rpn' st' ts
+          Jump _    l -> jump st l
+          RetT -> Ok (st, [])
+          ErrT -> Err UserErrorE
 
+    rpn' st _ = Ok (st, [])
 
-processToken :: Token -> State -> Result (State, [String])
--- process a token with the stack, with possible output
-processToken (TokenPure t) st = (, []) <$> processTokenPure t st
-processToken (CmdPrintT c) st = (st, ) <$> runCmdPrint c st
+    jump st l = rpn' st =<< toResult (UndefinedLabelE l) (lookup l jtable)
+
+    checkCond (v : _, _) = Ok . not $ isZero v
+    checkCond _          = Err EmptyStackE
+
 
 processTokenPure :: TokenPure -> State -> Result State
 -- process a pure token with the state

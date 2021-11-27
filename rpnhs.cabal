@@ -16,6 +16,7 @@ library
       Error
       Inline
       Interactive
+      LineProcessor
       Macros
       Operator
       Parser

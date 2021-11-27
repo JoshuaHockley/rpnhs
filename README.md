@@ -14,6 +14,7 @@ For convenience, you may want to alias rpnhs in your shell.\
 * Load and store variables to and from the stack (see [variables](#variables))
 * Uses a fractional representation where possible to avoid floating point inaccuracies (`1/2 + 1/2 = 1`)
 * Define macros for constants or common patterns (e.g. `triple` -> `3 *`) (see [macros](#macros))
+* Basic programs with labels and branching (see [programming](#programming))
 
 ### Commandline options
 ```
@@ -167,6 +168,19 @@ Right shifts are sign extended, so behaviour with negative values should be intu
 When provided a negative shift amount, the shift will be made in the opposite direction.\
 `n <<` will act the same as `-n >>`
 
+#### Comparison operators
+| Operator        | Arity |
+| :-------------- | :---- |
+| `lt`, `<`       | 2     |
+| `lte`, `<=`     | 2     |
+| `eq`, `==`, `=` | 2     |
+| `neq`, `!=`     | 2     |
+| `gte`, `>=`     | 2     |
+| `gt`, `>`       | 2     |
+
+These operators push `1` to the stack if the result is true, or `0` if the result is false.\
+They are useful in combination with the `B` [prog-command](#programming-commands).
+
 #### Misc
 | Operator          | Notes                                                                              | Arity |
 | :---------------- | :--------------------------------------------------------------------------------- | :---- |
@@ -234,7 +248,7 @@ For binary, octal, and hex, the leading `0` is optional.
 
 When `~` is given in the position indicated above, the input is interpreted as a radix complement representation (In binary, this is two's complement).
 
-`0bc01001 p` prints `9`\
+`0b~01001 p` prints `9`\
 `0b~1001 p` prints `-7`\
 `10~'856 p` prints `-144`
 
@@ -306,7 +320,7 @@ npr    sr sn' ln' ! ln' lr - ! i/
 quad   sc sb sa lb neg lb 2 ^ 4 la * lc * - sqrt + 2 la * / lb neg lb 2 ^ 4 la * lc * - sqrt - 2 la * /
 ```
 
-Macro definitions can contain other macros themselves.\
+Macro definitions can contain other macros themselves.
 ```
 > :def triple 3 *
 > :def inc 1 +
@@ -315,12 +329,12 @@ Macro definitions can contain other macros themselves.\
  13
 ```
 
-Macros cannot contain themselves. This includes an indirect reference through other macros.\
+Macros cannot contain themselves. This includes an indirect reference through other macros.
 ```
 > :def a b
 > :def b a
 ```
-Attempting to use such a macro will produce the following error:\
+Attempting to use such a macro will produce an error like the following:
 ```
 > a
 parse error: unrecognised token (a)
@@ -352,4 +366,112 @@ nroot  recip pow
 # c 8.2 4.3 10 5/2 avg -> 6.25
 avg  z scnt ++ lcnt /
 ```
+
+### Programming
+A system of labels and branching is available for writing simple programs.
+
+The following program prints out the numbers 1-10 using a simple loop.
+```
+> 1 [L1] p 1 + d 10 <= BL1
+ 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+ 10
+```
+
+Programs execute within a single line of instructions. This means you cannot jump to labels defined earlier in an interactive session.
+
+#### Labels
+Labels represent a point in the program that can be jumped to.\
+To declare a label, use square brackets around a name.\
+`[L1]`, `[START]`, `[end]`
+
+Labels cannot be defined multiple times in 1 line, as the program would be ambiguous.
+```
+> [L1] [L2] [L1]
+label error: label L1 is defined multiple times
+```
+
+#### Programming commands
+These commands interact with the control flow of the calculator.
+
+| Prog-command | Description                                                       |
+| :----------- | :---------------------------------------------------------------- |
+| `J[label]`   | Perform an unconditional jump to the specified label              |
+| `B[label]`   | Branch to the specified label if the top of the stack is non-zero |
+| `RET`        | Exit execution as if there are no more instructions               |
+| `ERR`        | Exit execution with a user error                                  |
+
+You will likely want to use a [comparison operator](#comparison-operators) when using with the `B` command.\
+The example program above contains `10 <= BL1`. This will branch to `[L1]` if the top of the stack is less than or equal to `10`.
+
+Since comparisons are normal operators, they consume the values they compare. You may find the `d` command useful just before making a comparison.
+
+Here's a more complex example that makes use of both jumps and branches.\
+The `collatz` macro computes the [Collatz conjecture](https://en.wikipedia.org/wiki/Collatz_conjecture) sequence for the number at the top of the stack. Each step in the computation is printed, and the total number of steps taken is pushed onto the stack at the end.
+```
+> :def collatz 0 scnt [S] p d 1 = BE lcnt 1 + scnt d 2 % BODD 2 i/ JS [ODD] 3 * 1 + JS [E] r lcnt
+> 10 collatz
+ 10
+ 5
+ 16
+ 8
+ 4
+ 2
+ 1
+> p
+ 6
+> 13 collatz
+ 13
+ 40
+ 20
+ 10
+ 5
+ 16
+ 8
+ 4
+ 2
+ 1
+> p
+ 9
+```
+
+#### Programming limitations
+With prog-commands it may be tempting to think of macros as commands that can be composed to build up complex programs.\
+However there is a barrier to this. Macros provide no 'scope', meaning all labels live in the same namespace.\
+Consider the `collatz` macro from before. Attempting to 'call' this macro twice in the same line has an unexpected result.
+```
+> 10 collatz 13 collatz
+label error: label S is defined multiple times
+```
+Both macros are expanded, and since they each define the `[S]` label, we are left with an ambiguous program.\
+This could be avoided by writing a loop around a single call to `collatz`, but with these workarounds we find that the complexity of our program grows far faster than the complexity of the problem.
+
+Macros and the programming features can be very powerful for simple processes, but they should not be relied on in place of a proper programming environment.
+
+#### Example: Godel numberings
+To wrap up, here's a realistic example where macros and the programming features come in handy.
+
+These macros facilitate translating between pairs of naturals and a single [godel number](https://en.wikipedia.org/wiki/G%C3%B6del_numbering).\
+The `<<>>` macros use the numbering `<<x, y>>  <->  2^x(2y + 1)` and the `<>` macros use `<x, y>  <->  2^x(2y + 1) - 1`.
+```
+# godel encode (N, N) -> N+
+<<e>>  2 * 1 + s 2 s ^ *
+# godel encode (N, N) -> N
+<e>    <<e>> 1 -
+# godel decode N+ -> (N, N)
+<<d>>  0 s [S] d 2 %     BE 1 >> s 1 + s JS [E] 1 >>
+# godel decode N  -> (N, N)
+<d>    0 s [S] d 2 % 0 = BE 1 >> s 1 + s JS [E] 1 >>
+```
+
+Without these macros, working with these godel numberings can be time consuming and error prone.\
+By using the programming features, decoding can be achieved without resorting to a full programming environment.
+
 

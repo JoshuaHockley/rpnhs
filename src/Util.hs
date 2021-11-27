@@ -4,6 +4,7 @@ module Util where
 
 import Data.List
 import Data.Bifunctor (first, second)
+import Control.Error
 
 
 (.:) = (.) . (.)
@@ -56,3 +57,11 @@ stripEndChar _ [] = ([], False)
 stripEndChar c s
   | last s == c = (init s, True )
   | otherwise   = (s,      False)
+
+stripBrackets :: String -> Maybe String
+-- strip square brackets from each end of a string
+stripBrackets s = do
+  '[' <- headMay s
+  ']' <- lastMay s
+  return . tail . init $ s
+

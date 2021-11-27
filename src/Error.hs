@@ -12,12 +12,11 @@ toResult :: Error -> Maybe a -> Result a
 toResult _ (Just x) = Ok x
 toResult e _        = Err e
 
-assert :: (a -> Bool) -> Error -> a -> Result a
+assert :: Bool -> Error -> Result ()
 -- assert a predicate holds for a value
 -- if the predicate does not hold, fail with the provided error
-assert p e x
-  | p x       = Ok  x
-  | otherwise = Err e
+assert False e = Err e
+assert _     _ = Ok ()
 
 
 -- error type
@@ -33,6 +32,11 @@ data Error = EmptyStackE               -- empty stack for a command that needs a
            | InvalidBaseE Int          -- invalid base to print/read an integer
            | InvalidDigitE Int Char    -- invalid digit under a base
            | EmptyBaseLiteralE         -- no digits given in a base literal
+            
+           | UndefinedLabelE String    -- attempt to jump to an undefined label
+           | DuplicateLabelE String    -- label defined multiple times
+
+           | UserErrorE                -- user error triggered by the ERR command
 
 
 -- user facing error description
@@ -49,6 +53,11 @@ instance Show Error where
   show (InvalidBaseE i)     = "base error: invalid base (" ++ show i ++ ")"
   show (InvalidDigitE b c)  = "base error: " ++ c : " is an invalid digit under base " ++ show b
   show EmptyBaseLiteralE    = "base error: empty base literal"
+
+  show (UndefinedLabelE l)  = "jump error: label " ++ l ++ " is undefined"
+  show (DuplicateLabelE l)  = "label error: label " ++ l ++ " is defined multiple times"
+
+  show UserErrorE           = "user error"
 
 
 -- Result behaves like Maybe as a monad

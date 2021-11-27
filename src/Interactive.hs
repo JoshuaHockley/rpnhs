@@ -3,8 +3,8 @@
 module Interactive (runInteractive) where
 
 import Rpn (rpn, State, emptyState)
-import Parser
-import Macros (Macros, expandMacros, parseMacro)
+import LineProcessor
+import Macros (Macros, parseMacro)
 import Error
 
 import System.Console.Haskeline
@@ -65,11 +65,13 @@ runInteractive ms prompt = runInputT settings $ run (ms, []) emptyState
     -- run the calculator on a line of input
     -- return the next state and updated history (both unchanged on error)
     runLine (ms, h) s l
-      = case rpn s =<< tokens of
+      = case res of
           Ok (s', out) -> mapM_ putout out >> return (s', s : h)
           Err e        -> putoute e        >> return (s,      h)
       where
-        tokens  = mapM parseToken . expandMacros ms $ words l
-        putout  = (outputStr " " >>) . outputStrLn
-        putoute = outputStrLn . show
+        res = do
+          (tokens, jtable) <- processLine ms (words l)
+          rpn jtable s tokens
+        putout       = (outputStr " " >>) . outputStrLn
+        putoute      = outputStrLn . show
 

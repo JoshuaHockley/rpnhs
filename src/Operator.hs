@@ -42,6 +42,12 @@ module Operator (
   opXor,
   opLShift,
   opRShift,
+  opLt,
+  opLte,
+  opEq,
+  opNeq,
+  opGte,
+  opGt,
   opRnd,
   opFloor,
   opCeil,
@@ -113,6 +119,9 @@ buildIOp2' iop = buildOp2' (Just iop) Nothing Nothing
 
 buildFOp1' fop = buildOp1' Nothing Nothing (Just fop)
 buildFOp2' fop = buildOp2' Nothing Nothing (Just fop)
+
+buildCmp iop rop fop = buildTOp2 (fromEnum' .: iop) (fromEnum' .: rop) (fromEnum' .: fop)
+  where fromEnum' = I . toInteger . fromEnum
 
 buildRounder rop fop = buildTOp1 I (I . rop) (I . fop)
 
@@ -213,6 +222,14 @@ opXor  = buildIOp2' xor
 -- shifts
 opLShift = buildIOp2' (\i i' -> shift i (fromInteger i'))
 opRShift v v' = opLShift v (negateVal v')
+
+-- comparisons
+opLt  = buildCmp (<)  (<)  (<)
+opLte = buildCmp (<=) (<=) (<=)
+opEq  = buildCmp (==) (==) (==)
+opNeq = buildCmp (/=) (/=) (/=)
+opGte = buildCmp (>=) (>=) (>=)
+opGt  = buildCmp (>)  (>)  (>)
 
 -- misc
 opRnd   = buildRounder round   round
