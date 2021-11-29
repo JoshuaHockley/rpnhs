@@ -14,22 +14,26 @@ main = start =<< execParser (info (args <**> helper) desc)
            <> progDesc "To run the calculator inline, provide instructions as cmdline args. \
                        \To run the calculator interactively, provide no cmdline args."
     args = Args
-           <$> switch (long "auto-print" <> short 'p' <> help "Auto print if no output is produced from inline mode")
-           <*> strOption (long "prompt" <> value "> " <> metavar "PROMPT" <> help "Set the interactive mode prompt")
+           <$> strOption (long "prompt" <> short 'P' <> value "> " <> metavar "PROMPT" <> help "Set the interactive mode prompt")
+           <*> switch (long "auto-print" <> short 'p' <> help "Auto print if no output is produced from inline mode")
+           <*> switch (long "eprint-instructions" <> short 'i' <> help "Print remaining instructions when an error occurs")
+           <*> switch (long "eprint-stack" <> short 's' <> help "Print the stack when an error occurs")
            <*> optional (strOption (long "macro-file" <> short 'm' <> metavar "FILE" <> help "Load a given macro file on startup"))
            <*> many (strArgument mempty)
 
 data Args = Args {
-  autoPrint :: Bool,
-  prompt    :: String,
-  macroFile :: Maybe FilePath,
-  inlineIn  :: [String]
+  prompt      :: String,
+  autoPrint   :: Bool,
+  ePrintInstr :: Bool,
+  ePrintStack :: Bool,
+  macroFile   :: Maybe FilePath,
+  inlineIn    :: [String]
 }
 
 start :: Args -> IO ()
-start (Args autoPrint prompt macroFile inlineIn) = do
+start (Args prompt autoPrint ePrintInstr ePrintStack macroFile inlineIn) = do
   ms <- getSavedMacros macroFile
   if null inlineIn
-     then runInteractive ms prompt
-     else runInline ms autoPrint inlineIn
+     then runInteractive ms prompt ePrintInstr ePrintStack
+     else runInline ms autoPrint ePrintInstr ePrintStack inlineIn
 

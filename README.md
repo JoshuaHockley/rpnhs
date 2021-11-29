@@ -1,7 +1,7 @@
 # rpnhs
 A [reverse Polish notation](https://en.wikipedia.org/wiki/Reverse_Polish_notation) calculator in Haskell.
 
-Inspired by [rpnpy](https://github.com/terrycojones/rpnpy).
+Inspired by [rpnpy](https://github.com/terrycojones/rpnpy) and [dc](https://www.gnu.org/software/bc/manual/dc-1.05/html_mono/dc.html).
 
 For convenience, you may want to alias rpnhs in your shell.\
 `alias hc='rpnhs'` (short for Haskell calculator)
@@ -18,8 +18,10 @@ For convenience, you may want to alias rpnhs in your shell.\
 
 ### Commandline options
 ```
+-P,--prompt PROMPT       Set the interactive mode prompt
 -p,--auto-print          Auto print if no output is produced from inline mode
---prompt PROMPT          Set the interactive mode prompt
+-i,--eprint-instructions Print remaining instructions when an error occurs
+-s,--eprint-stack        Print the stack when an error occurs
 -m,--macro-file FILE     Load a given macro file on startup
 -h,--help                Show this help text
 ```
@@ -41,7 +43,7 @@ If execution fails, no output will be made to stdout, and an error message will 
 `rpnhs 1 2 + p hi` produces only `parse error: unrecognised token (hi)`
 
 #### Interactive
-To run the interactive mode, run rpnhs with no arguments.\
+To start the interactive mode, run rpnhs with no arguments.\
 `rpnhs`
 
 You are then presented with a prompt to input any number of instructions. After pressing enter, the instructions will be executed, and the state of the calculator modified.
@@ -179,6 +181,8 @@ When provided a negative shift amount, the shift will be made in the opposite di
 | `gt`, `>`       | 2     |
 
 These operators push `1` to the stack if the result is true, or `0` if the result is false.\
+`3 4 < p` prints `1`
+
 They are useful in combination with the `B` [prog-command](#programming-commands).
 
 #### Misc
@@ -443,7 +447,7 @@ The `collatz` macro computes the [Collatz conjecture](https://en.wikipedia.org/w
 ```
 
 #### Programming limitations
-With prog-commands it may be tempting to think of macros as commands that can be composed to build up complex programs.\
+With prog-commands it may be tempting to think of macros as functions that can be composed to build up complex programs.\
 However there is a barrier to this. Macros provide no 'scope', meaning all labels live in the same namespace.\
 Consider the `collatz` macro from before. Attempting to 'call' this macro twice in the same line has an unexpected result.
 ```

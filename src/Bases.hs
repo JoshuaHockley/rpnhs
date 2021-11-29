@@ -24,7 +24,7 @@ parseB compl b s = (if compl then fromRadixComp b (length s) else id)
                    <$> digitValues b s
   where
     digitValues :: Int -> String -> Result [Int]
-    digitValues _ "" = Err EmptyBaseLiteralE
+    digitValues _ "" = mkErr EmptyBaseLiteralE
     digitValues b s  = mapM digitValue s
       where
         digitValue :: Char -> Result Int

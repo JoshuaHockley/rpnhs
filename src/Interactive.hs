@@ -20,8 +20,9 @@ type Context = (Macros, History)
 type History = [State]
 
 
-runInteractive :: Macros -> String -> IO ()
-runInteractive ms prompt = runInputT settings $ run (ms, []) emptyState
+runInteractive :: Macros -> String -> Bool -> Bool -> IO ()
+runInteractive ms prompt ePrintInstr ePrintStack
+  = runInputT settings $ run (ms, []) emptyState
   where
     settings = Settings { complete = noCompletion,
                           historyFile = Nothing,
@@ -73,5 +74,7 @@ runInteractive ms prompt = runInputT settings $ run (ms, []) emptyState
           (tokens, jtable) <- processLine ms (words l)
           rpn jtable s tokens
         putout       = (outputStr " " >>) . outputStrLn
-        putoute      = outputStrLn . show
+        putoute      = mapM_ outputStrLn . showE'
+
+    showE' = showE ePrintInstr ePrintStack
 

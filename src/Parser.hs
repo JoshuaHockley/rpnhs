@@ -20,7 +20,7 @@ parseToken :: String -> Result Token
 -- parse a token (wrapper for parseToken')
 parseToken s = case parseToken' s of
                  Just r -> r                    -- use descriptive result
-                 _      -> Err (TokenParseE s)  -- no parser matched, use generic error
+                 _      -> mkErr (TokenParseE s)  -- no parser matched, use generic error
 
 
 -- a parser attempts to produce a value of type 'a' from a String

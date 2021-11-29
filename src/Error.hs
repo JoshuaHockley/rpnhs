@@ -1,46 +1,75 @@
 module Error where
 
+import Value
+
 import Control.Monad
+import Data.Maybe
 
 
 -- result type for rpnhs
 data Result a = Ok  a
               | Err Error
 
-toResult :: Error -> Maybe a -> Result a
--- convert a Maybe value to a result, with a provided error description
-toResult _ (Just x) = Ok x
-toResult e _        = Err e
+mkErr :: ErrDesc -> Result a
+-- make a contextless erroroneous Result
+mkErr desc = Err $ Error desc Nothing
 
-assert :: Bool -> Error -> Result ()
+toResult :: ErrDesc -> Maybe a -> Result a
+-- convert a Maybe value to a Result, with a provided error description
+toResult _ (Just x) = Ok x
+toResult e _        = mkErr e
+
+assert :: Bool -> ErrDesc -> Result ()
 -- assert a predicate holds for a value
 -- if the predicate does not hold, fail with the provided error
-assert False e = Err e
+assert False e = mkErr e
 assert _     _ = Ok ()
+
+withContext :: EContext -> Result a -> Result a
+-- inject a context into a Result
+withContext ctx (Err (Error desc _)) = Err (Error desc (Just ctx))
+withContext _ r = r
 
 
 -- error type
-data Error = EmptyStackE               -- empty stack for a command that needs at least 1 value
-           | PullE                     -- stack too small to perform the pull
-           | UndefinedVarE String      -- attempt to load an uninitialised variable
-           | PrintBaseNonIntegerE      -- tried to print a non-integer value in a custom base
-           | OperatorFailureE          -- operator failed (e.g. invalid types, not enough opperands)
+-- contains the description and the context it occured in (Nothing when not calculator related)
+data Error = Error ErrDesc (Maybe EContext)
 
-           | TokenParseE String        -- failed to parse a string as a token
-           | FracParseE String         -- fraction literal contained an invalid componant e.g. 3/hi
-           | InvalidBaseSE String      -- base not an integer
-           | InvalidBaseE Int          -- invalid base to print/read an integer
-           | InvalidDigitE Int Char    -- invalid digit under a base
-           | EmptyBaseLiteralE         -- no digits given in a base literal
-            
-           | UndefinedLabelE String    -- attempt to jump to an undefined label
-           | DuplicateLabelE String    -- label defined multiple times
+-- context of the calculator before an error
+type EContext = ([String], Stack)
 
-           | UserErrorE                -- user error triggered by the ERR command
+data ErrDesc = EmptyStackE               -- empty stack for a command that needs at least 1 value
+             | PullE                     -- stack too small to perform the pull
+             | UndefinedVarE String      -- attempt to load an uninitialised variable
+             | PrintBaseNonIntegerE      -- tried to print a non-integer value in a custom base
+             | OperatorFailureE          -- operator failed (e.g. invalid types, not enough opperands)
 
+             | TokenParseE String        -- failed to parse a string as a token
+             | FracParseE String         -- fraction literal contained an invalid componant e.g. 3/hi
+             | InvalidBaseSE String      -- base not an integer
+             | InvalidBaseE Int          -- invalid base to print/read an integer
+             | InvalidDigitE Int Char    -- invalid digit under a base
+             | EmptyBaseLiteralE         -- no digits given in a base literal
+              
+             | UndefinedLabelE String    -- attempt to jump to an undefined label
+             | DuplicateLabelE String    -- label defined multiple times
+
+             | UserErrorE                -- user error triggered by the ERR command
+
+
+showE :: Bool -> Bool -> Error -> [String]
+-- user facing output of an error
+-- context printing is based on settings
+-- print instructions -> print stack -> ...
+showE printInstr printStack (Error desc (Just (instr, stack)))
+  = show desc
+    :  [" at     " ++ unwords instr                    | printInstr]
+    ++ [" with   " ++ fromMaybe "[]" (showStack stack) | printStack]
+showE _ _ (Error desc _)
+  = [show desc]
 
 -- user facing error description
-instance Show Error where
+instance Show ErrDesc where
   show EmptyStackE          = "error: empty stack"
   show PullE                = "error: stack was too small to perform the pull"
   show (UndefinedVarE s)    = "error: variable is undefined (" ++ s ++ ")"
@@ -75,5 +104,4 @@ instance Applicative Result where
 
 instance Functor Result where
   fmap f = (=<<) (return . f)
-
 
