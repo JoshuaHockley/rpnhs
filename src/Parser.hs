@@ -143,11 +143,11 @@ parseCommand = composeParsers [parseFromMap m, parsePop, parseDup, parsePull, pa
          (["dup", "d"]   , Dup 1  ),
          (["swap", "s"]  , Pull 2 ),  -- alias for pull2
          (["depth", "z"] , Depth  )]
-    parsePop    = parseWithInt ["pop", "r"] Pop
-    parseDup    = parseWithInt ["dup", "d"] Dup
-    parsePull   = parseWithInt ["pull"]     Pull
-    parseStore  = parseWithStr "s"          Store
-    parseLoad   = parseWithStr "l"          Load
+    parsePop    = parseWithInt ["pop", "r"]   Pop
+    parseDup    = parseWithInt ["dup", "d"]   Dup
+    parsePull   = parseWithInt ["pull", "pl"] Pull
+    parseStore  = parseWithStr "s"            Store
+    parseLoad   = parseWithStr "l"            Load
 
 
 parseCommandIO :: Parser CommandPrint
