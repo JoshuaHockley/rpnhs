@@ -131,21 +131,21 @@ parseOperator = parseFromMap m
              (["++"]                , OpF opAdd      ),
              (["**"]                , OpF opMultiply ),
              (["&&"]                , OpF opAnd      ),
-             (["||"]                , OpF opOr       )
-            ]
+             (["||"]                , OpF opOr       )]
 
 
 parseCommand :: Parser Command
-parseCommand = composeParsers [parseFromMap m, parsePop, parseDup, parsePull, parseStore, parseLoad]
+parseCommand = composeParsers [parseFromMap m, parsePop, parseDup, parsePull, parsePush, parseStore, parseLoad]
   where
     m = [(["pop", "r"]   , Pop 1  ),
          (["clear", "c"] , Clear  ),
          (["dup", "d"]   , Dup 1  ),
-         (["swap", "s"]  , Pull 2 ),  -- alias for pull2
+         (["swap", "s"]  , Push 1 ),  -- alias for push1
          (["depth", "z"] , Depth  )]
     parsePop    = parseWithInt ["pop", "r"]   Pop
     parseDup    = parseWithInt ["dup", "d"]   Dup
     parsePull   = parseWithInt ["pull", "pl"] Pull
+    parsePush   = parseWithInt ["push", "ps"] Push
     parseStore  = parseWithStr "s"            Store
     parseLoad   = parseWithStr "l"            Load
 

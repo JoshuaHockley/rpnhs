@@ -40,6 +40,7 @@ type EContext = ([String], Stack)
 
 data ErrDesc = EmptyStackE               -- empty stack for a command that needs at least 1 value
              | PullE                     -- stack too small to perform the pull
+             | PushE                     -- stack too small to perform the push
              | UndefinedVarE String      -- attempt to load an uninitialised variable
              | PrintBaseNonIntegerE      -- tried to print a non-integer value in a custom base
              | OperatorFailureE          -- operator failed (e.g. invalid types, not enough opperands)
@@ -72,6 +73,7 @@ showE _ _ (Error desc _)
 instance Show ErrDesc where
   show EmptyStackE          = "error: empty stack"
   show PullE                = "error: stack was too small to perform the pull"
+  show PushE                = "error: stack was too small to perform the push"
   show (UndefinedVarE s)    = "error: variable is undefined (" ++ s ++ ")"
   show PrintBaseNonIntegerE = "error: cannot print non-integer values in custom bases"
   show OperatorFailureE     = "error: operator failed"

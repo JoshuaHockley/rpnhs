@@ -80,20 +80,21 @@ Metacommands begin with `:` and can only be used in interactive mode. They must 
 
 ### Commands
 Commands are instructions for interacting with the calculator in ways other than pushing values and applying operators.
-| Command          | Description                                                                                        |
-| :--------------- | :------------------------------------------------------------------------------------------------- |
-| `print`, `p`     | Print the value at the top of the stack (see [bases](#bases) for printing in other bases)          |
-| `stack`, `f`     | Print all values in the stack, with the top value at the rightmost position                        |
-| `pop[n]`, `r`    | Pop the top `n` (default 1) values from the stack (without printing)                               |
-| `clear`, `c`     | Empty the stack                                                                                    |
-| `dup[n]`, `d[n]` | Duplicate the top value of the stack `n` times (default 1)                                         |
-| `pull[n]`        | Pull the `n`th value on the stack to the top                                                       |
-| `swap`, `s`      | Swap the top 2 values on the stack (alias for `pull2`)                                             |
-| `depth`, `z`     | Push the current depth of the stack                                                                |
-| `s[name]`        | Pop the top value on the stack and store it in the variable `name`, overwriting any previous value |
-| `l[name]`        | Load the value in `name` and push it to the stack (fails if undefined)                             |
-| `view`, `v`      | View the values of all variables                                                                   |
-| `v[name]`        | View the value in `name`                                                                           |
+| Command            | Description                                                                                        |
+| :----------------- | :------------------------------------------------------------------------------------------------- |
+| `print`, `p`       | Print the value at the top of the stack (see [bases](#bases) for printing in other bases)          |
+| `stack`, `f`       | Print all values in the stack, with the top value at the rightmost position                        |
+| `pop[n]`, `r`      | Pop the top `n` (default 1) values from the stack (without printing)                               |
+| `clear`, `c`       | Empty the stack                                                                                    |
+| `dup[n]`, `d[n]`   | Duplicate the top value of the stack `n` times (default 1)                                         |
+| `pull[n]`, `pl[n]` | Pull the `n`th value on the stack to the top                                                       |
+| `push[n]`, `ps[n]` | Push the top of the stack down `n` elements                                                        |
+| `swap`, `s`        | Swap the top 2 values on the stack (alias for `push1`)                                             |
+| `depth`, `z`       | Push the current depth of the stack                                                                |
+| `s[name]`          | Pop the top value on the stack and store it in the variable `name`, overwriting any previous value |
+| `l[name]`          | Load the value in `name` and push it to the stack (fails if undefined)                             |
+| `view`, `v`        | View the values of all variables                                                                   |
+| `v[name]`          | View the value in `name`                                                                           |
 
 ### Operators
 Operators pop 1-2 values from the top of the stack, and push back a single result.
@@ -322,7 +323,7 @@ Here are a few examples of macros you may find useful.
 nroot  recip ^
 avg    z sz ++ lz /
 npr    f!
-ncr    d pl3 pl3 f! s ! i/
+ncr    d ps2 f! s ! i/
 quad   sc sb sa lb neg lb 2 ^ 4 la * lc * - sqrt + 2 la * / lb neg lb 2 ^ 4 la * lc * - sqrt - 2 la * /
 ```
 

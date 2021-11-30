@@ -6,7 +6,7 @@ import Value
 import Operator
 import Bases
 import Error
-import Util (pullElem)
+import Util (pullElem, pushElem)
 
 import Control.Monad
 import Data.Bifunctor (first, second)
@@ -40,6 +40,7 @@ data Command = Pop Int        -- remove the top n values from the stack
              | Clear          -- clear all values from the stack
              | Dup Int        -- repush the value at the top of the stack n times
              | Pull Int       -- pull the nth value (n >= 1) to the top of the stack
+             | Push Int       -- push the head of the stack to the nth position
              | Store String   -- pop the top of the stack and store it in a variable
              | Load String    -- load a variable onto the stack
              | Depth          -- push the depth of the stack
@@ -137,6 +138,7 @@ runCmd Clear        (s, vars)     = Ok ([], vars)
 runCmd (Dup n)      (v : s, vars) = Ok (replicate (n + 1) v ++ s, vars)
 runCmd (Dup _)      _             = mkErr EmptyStackE
 runCmd (Pull n)     (s, vars)     = (, vars) <$> toResult PullE (pullElem (n - 1) s)
+runCmd (Push n)     (s, vars)     = (, vars) <$> toResult PushE (pushElem n       s)
 runCmd Depth        (s, vars)     = Ok (I d : s, vars) where d = toInteger (length s)
 runCmd (Store iden) (v : s, vars) = Ok (s, setVar iden v vars)
 runCmd (Store _)    _             = mkErr EmptyStackE
