@@ -319,10 +319,10 @@ Using macros is simple.
 
 Here are a few examples of macros you may find useful.
 ```
-nroot  recip pow
-avg    z scnt ++ lcnt /
-ncr    sr sn' ln' ! lr ! ln' lr - ! * i/
-npr    sr sn' ln' ! ln' lr - ! i/
+nroot  recip ^
+avg    z sz ++ lz /
+npr    f!
+ncr    d pl3 pl3 f! s ! i/
 quad   sc sb sa lb neg lb 2 ^ 4 la * lc * - sqrt + 2 la * / lb neg lb 2 ^ 4 la * lc * - sqrt - 2 la * /
 ```
 
@@ -366,11 +366,11 @@ For example:
 ----------------------
 # nth root
 # 64 3 nroot -> 4
-nroot  recip pow
+nroot  recip ^
 
 # mean
 # c 8.2 4.3 10 5/2 avg -> 6.25
-avg  z scnt ++ lcnt /
+avg  z sz ++ lz /
 ```
 
 ### Programming
