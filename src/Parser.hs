@@ -94,6 +94,8 @@ parseOperator = parseFromMap m
              (["mod", "%"]          , Op2 opMod      ),
              (["pow", "^"]          , Op2 opPower    ),
              (["log"]               , Op2 opLog      ),
+             (["ffact", "f!"]       , Op2 opFFact    ),
+             (["rfact", "r!"]       , Op2 opRFact    ),
              (["sin"]               , Op1 opSin      ),
              (["cos"]               , Op1 opCos      ),
              (["tan"]               , Op1 opTan      ),

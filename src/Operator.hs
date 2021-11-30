@@ -11,6 +11,7 @@ module Operator (
   opExp,
   opLn,
   opLog2,
+  opFact,
   opAdd,
   opSubtract,
   opMultiply,
@@ -19,7 +20,8 @@ module Operator (
   opMod,
   opPower,
   opLog,
-  opFact,
+  opFFact,
+  opRFact,
   opSin,
   opCos,
   opTan,
@@ -193,6 +195,16 @@ opPower v v' = buildFOp2' (**) v v'  -- use floating operation in other cases
 opLog v _ | isNeg v || isZero v = Nothing
 opLog _ v | isNeg v || isZero v = Nothing
 opLog v v' = buildFOp2' (flip logBase) v v'  -- log_2(8) -> 8 2 log
+
+-- falling factorial
+opFFact = buildIOp2' ffact
+  where
+    ffact m n = product [(m - n + 1)..m]
+
+-- rising factorial
+opRFact = buildIOp2' rfact
+  where
+    rfact m n = product [m..(m + n - 1)]
 
 -- trig
 opSin   = buildFOp1' sin

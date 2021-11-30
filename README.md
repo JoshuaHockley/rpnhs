@@ -99,24 +99,26 @@ Commands are instructions for interacting with the calculator in ways other than
 Operators pop 1-2 values from the top of the stack, and push back a single result.
 
 #### General
-| Operator            | Notes                               | Arity |
-| :------------------ | :---------------------------------- | :---- |
-| `abs`               |                                     | 1     |
-| `neg`, `negate`     |                                     | 1     |
-| `recip`             |                                     | 1     |
-| `sqrt`, `root`      |                                     | 1     |
-| `exp`, `e^`         |                                     | 1     |
-| `ln`                |                                     | 1     |
-| `log2`              |                                     | 1     |
-| `fact`, `!`         |                                     | 1     |
-| `add`, `plus`, `+`  |                                     | 2     |
-| `sub`, `minus`, `-` |                                     | 2     |
-| `mul`, `times`, `*` |                                     | 2     |
-| `div`, `/`          | true division                       | 2     |
-| `idiv`, `i/`        | integer division                    | 2     |
-| `mod`, `%`          | truncated towards negative infinity | 2     |
-| `pow`, `^`          |                                     | 2     |
-| `log`               | `a b log` -> logb(a)                | 2     |
+| Operator            | Notes                                                  | Arity |
+| :------------------ | :----------------------------------------------------- | :---- |
+| `abs`               |                                                        | 1     |
+| `neg`, `negate`     |                                                        | 1     |
+| `recip`             |                                                        | 1     |
+| `sqrt`, `root`      |                                                        | 1     |
+| `exp`, `e^`         |                                                        | 1     |
+| `ln`                |                                                        | 1     |
+| `log2`              |                                                        | 1     |
+| `fact`, `!`         |                                                        | 1     |
+| `add`, `plus`, `+`  |                                                        | 2     |
+| `sub`, `minus`, `-` |                                                        | 2     |
+| `mul`, `times`, `*` |                                                        | 2     |
+| `div`, `/`          | true division                                          | 2     |
+| `idiv`, `i/`        | integer division                                       | 2     |
+| `mod`, `%`          | truncated towards negative infinity                    | 2     |
+| `pow`, `^`          |                                                        | 2     |
+| `log`               | `a b log -> logb(a)`                                   | 2     |
+| `ffact`, `f!`       | falling factorial: `m n f! -> m! / (m - n)!`           | 2     |
+| `rfact`, `r!`       | rising factorial: `m n r! -> (m + n - 1)! / (m - 1)!`  | 2     |
 
 #### Trigonometry
 | Operator           | Arity |
