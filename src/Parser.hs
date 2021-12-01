@@ -14,6 +14,7 @@ import Data.Ratio
 import Data.List
 import Data.Maybe
 import Control.Monad
+import Control.Applicative
 
 
 parseToken :: String -> Result Token
@@ -38,10 +39,7 @@ type Parser a = String -> Maybe (Result a)
 
 composeParsers :: [Parser a] -> Parser a
 -- compose a list of parsers by trying each in order until one matches
-composeParsers = foldl comp (const Nothing)
-  where comp p p' s = case p s of
-                        Just r  -> Just r
-                        Nothing -> p' s
+composeParsers ps s = foldl (<|>) Nothing (map ($ s) ps)
 
 -- map from sets of strings to parse results
 -- e.g. print, p -> CmdIOT Print  where a :: Token
