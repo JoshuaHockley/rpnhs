@@ -20,7 +20,7 @@ import Control.Applicative
 parseToken :: String -> Result Token
 -- parse a token (wrapper for parseToken')
 parseToken s = case parseToken' s of
-                 Just r -> r                    -- use descriptive result
+                 Just r -> r                      -- use descriptive result
                  _      -> mkErr (TokenParseE s)  -- no parser matched, use generic error
 
 
@@ -63,7 +63,7 @@ parseWithStr prefix handler s = Ok . handler <$> mfilter (/= "") (stripPrefix pr
 -- parsers
 parseToken' :: Parser Token
 -- the master parser, composes each parser and raise their types to Token
-parseToken' = composeParsers [operator, command, commandIO, value, jump, branch, parseFromMap m]  -- parsers to try (l to r)
+parseToken' = composeParsers [operator, command, commandIO, jump, branch, parseFromMap m, value]  -- parsers to try (l to r)
   where operator  = fmap2 (TokenPure . OpT)  . parseOperator
         command   = fmap2 (TokenPure . CmdT) . parseCommand
         commandIO = fmap2 CmdPrintT          . parseCommandIO
