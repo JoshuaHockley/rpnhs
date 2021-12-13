@@ -465,20 +465,33 @@ Macros and the programming features can be very powerful for simple processes, b
 #### Example: Godel numberings
 To wrap up, here's a realistic example where macros and the programming features come in handy.
 
-These macros facilitate translating between pairs of naturals and a single [godel number](https://en.wikipedia.org/wiki/G%C3%B6del_numbering).\
-The `<<>>` macros use the numbering `<<x, y>>  <->  2^x(2y + 1)` and the `<>` macros use `<x, y>  <->  2^x(2y + 1) - 1`.
+These macros facilitate translating between pairs/lists of naturals and a [godel number](https://en.wikipedia.org/wiki/G%C3%B6del_numbering) representation.\
+The `<<>>` macros use the numbering `<<x, y>> = 2^x(2y + 1)` and map between `(N, N)` and `N+`.\
+The `<>` macros use the numbering ` <x, y> = <<x, y>> - 1` and map between `(N, N)` and `N`.\
+The `<[]>` macros use the numbering `[x1, x2, x3, ... xn] = <<x1, <<x2, <<x3, ... <<xn, 0>>...>>>>` and map between `[N]` and `N`.
 ```
 # godel encode (N, N) -> N+
 <<e>>  2 * 1 + s 2 s ^ *
-# godel encode (N, N) -> N
-<e>    <<e>> 1 -
 # godel decode N+ -> (N, N)
 <<d>>  0 s [S] d 2 %     BE 1 >> s 1 + s JS [E] 1 >>
+# godel encode (N, N) -> N
+<e>    <<e>> 1 -
 # godel decode N  -> (N, N)
 <d>    0 s [S] d 2 % 0 = BE 1 >> s 1 + s JS [E] 1 >>
+# godel encode [N] ->  N
+<[e]>  0 [S'] z 1 = BE' <<e>> JS' [E']
+# godel decode  N  -> [N]
+<[d]>  [S'] d 0 = BE' <<d>> JS' [E'] r
+```
+Here's a demonstration of encoding and then decoding a list of naturals.
+```
+> 1 2 3 4 <[e]> p pb
+ 8466
+ 10000100010010
+> <[d]> f
+ 1 2 3 4
 ```
 
 Without these macros, working with these godel numberings can be time consuming and error prone.\
-By using the programming features, decoding can be achieved without resorting to a full programming environment.
-
+By using the programming features, they can be worked with without resorting to a full programming environment.
 
