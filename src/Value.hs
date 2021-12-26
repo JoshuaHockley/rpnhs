@@ -42,6 +42,10 @@ reduceR r
   | denominator r == 1 = I $ numerator r
   | otherwise          = R r
 
+validateValue :: Value -> Maybe Value
+validateValue (F f) | isNaN f = Nothing
+validateValue v               = Just v
+
 
 -- showing
 

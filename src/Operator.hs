@@ -1,6 +1,3 @@
--- operators consume a number of Values as arguments
--- and return Nothing if the the operation fails, or the Values are of invalid types
-
 module Operator (
   Operator1,
   Operator2,
@@ -73,17 +70,17 @@ type Operator2 = Value -> Value -> Maybe Value
 -- operator builders
 --   build a generic operator from handlers for each type
 --   will coerce values 'down' towards floats if needed
---   if no handler can be applied to the value(s), the opperator fails
+--   if no handler can be applied to the value(s), the operator fails
 
 type IntegerOp1  = Integer  -> Value
 type RationalOp1 = Rational -> Value
 type FloatingOp1 = Double   -> Value
 
 buildOp1 :: Maybe IntegerOp1  -> Maybe RationalOp1 -> Maybe FloatingOp1 -> Operator1
-buildOp1 (Just iop) _ _  (I i)  = Just . iop                $ i
-buildOp1 _ (Just rop) _  (I i)  = Just . rop . fromIntegral $ i
-buildOp1 _ (Just rop) _  (R r)  = Just . rop                $ r
-buildOp1 _ _ (Just fop)  v      = Just . fop . asF          $ v
+buildOp1 (Just iop) _ _  (I i)  = validateValue . iop                $ i
+buildOp1 _ (Just rop) _  (I i)  = validateValue . rop . fromIntegral $ i
+buildOp1 _ (Just rop) _  (R r)  = validateValue . rop                $ r
+buildOp1 _ _ (Just fop)  v      = validateValue . fop . asF          $ v
 buildOp1 _ _ _           _      = Nothing  -- invalid type - fail
 
 type IntegerOp2  = Integer  -> Integer  -> Value
@@ -92,14 +89,14 @@ type FloatingOp2 = Double   -> Double   -> Value
 
 buildOp2 :: Maybe IntegerOp2  -> Maybe RationalOp2 -> Maybe FloatingOp2 -> Operator2
 -- integer
-buildOp2 (Just iop) _ _  (I i) (I i') = Just $ iop i i'
+buildOp2 (Just iop) _ _  (I i) (I i') = validateValue $ iop i i'
 -- rational
-buildOp2 _ (Just rop) _  (I i) (I i') = Just $ (rop `on` fromIntegral) i i'
-buildOp2 _ (Just rop) _  (I i) (R r') = Just $ rop (fromIntegral i) r'
-buildOp2 _ (Just rop) _  (R r) (I i') = Just $ rop r (fromIntegral i')
-buildOp2 _ (Just rop) _  (R r) (R r') = Just $ rop r r'
+buildOp2 _ (Just rop) _  (I i) (I i') = validateValue $ (rop `on` fromIntegral) i i'
+buildOp2 _ (Just rop) _  (I i) (R r') = validateValue $ rop (fromIntegral i) r'
+buildOp2 _ (Just rop) _  (R r) (I i') = validateValue $ rop r (fromIntegral i')
+buildOp2 _ (Just rop) _  (R r) (R r') = validateValue $ rop r r'
 -- floating
-buildOp2 _ _ (Just fop)  v     v'     = Just $ (fop `on` asF) v v'
+buildOp2 _ _ (Just fop)  v     v'     = validateValue $ (fop `on` asF) v v'
 -- invalid types - fail
 buildOp2 _ _ _           _     _      = Nothing
 
@@ -198,13 +195,11 @@ opLog v v' = buildFOp2' (flip logBase) v v'  -- log_2(8) -> 8 2 log
 
 -- falling factorial
 opFFact = buildIOp2' ffact
-  where
-    ffact m n = product [(m - n + 1)..m]
+  where ffact m n = product [(m - n + 1)..m]
 
 -- rising factorial
 opRFact = buildIOp2' rfact
-  where
-    rfact m n = product [m..(m + n - 1)]
+  where rfact m n = product [m..(m + n - 1)]
 
 -- trig
 opSin   = buildFOp1' sin
@@ -248,3 +243,4 @@ opRnd   = buildRounder round   round
 opFloor = buildRounder floor   floor
 opCeil  = buildRounder ceiling ceiling
 opFloat = Just . F . asF
+
