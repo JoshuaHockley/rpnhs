@@ -118,17 +118,16 @@ rpn jtable = rpn'
 processTokenPure :: TokenPure -> State -> Result State
 -- process a pure token with the state
 processTokenPure (ValT v) (s, vars) = return (v : s, vars)
-processTokenPure (OpT op) (s, vars) = (, vars) <$> toResult OperatorFailureE (processOp op s)
+processTokenPure (OpT op) (s, vars) = (, vars) <$> processOp op s
 processTokenPure (CmdT c) st        = runCmd c st
 
 
-processOp :: Operator -> Stack -> Maybe Stack
+processOp :: Operator -> Stack -> Result Stack
 -- process an operator on the stack
--- returns Nothing iff there are not enough operands, or the values are of invalid types
-processOp (Op1 op) (v : s)      = (: s)  <$> op v
-processOp (Op2 op) (v : v' : s) = (: s)  <$> op v' v
-processOp (OpF op) (v : v' : s) = return <$> foldM op v (v' : s)
-processOp _        _            = Nothing
+processOp (Op1 op) (v : s)      = (: s)  <$> toResult OperatorFailureE (op v)
+processOp (Op2 op) (v : v' : s) = (: s)  <$> toResult OperatorFailureE (op v' v)
+processOp (OpF op) (v : v' : s) = return <$> toResult OperatorFailureE (foldM op v (v' : s))
+processOp _        _            = mkErr NotEnoughOperandsE
 
 
 runCmd :: Command -> State -> Result State

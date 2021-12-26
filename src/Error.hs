@@ -42,7 +42,8 @@ data ErrDesc = EmptyStackE               -- empty stack for a command that needs
              | PushE                     -- stack too small to perform the push
              | UndefinedVarE String      -- attempt to load an uninitialised variable
              | PrintBaseNonIntegerE      -- tried to print a non-integer value in a custom base
-             | OperatorFailureE          -- operator failed (e.g. invalid types, not enough opperands)
+             | OperatorFailureE          -- operator failed (e.g. invalid types)
+             | NotEnoughOperandsE        -- not enough operands to apply an operator
 
              | TokenParseE String        -- failed to parse a string as a token
              | FracParseE String         -- fraction literal contained an invalid componant e.g. 3/hi
@@ -76,6 +77,7 @@ instance Show ErrDesc where
   show (UndefinedVarE s)    = "error: variable is undefined (" ++ s ++ ")"
   show PrintBaseNonIntegerE = "error: cannot print non-integer values in custom bases"
   show OperatorFailureE     = "error: operator failed"
+  show NotEnoughOperandsE   = "error: not enough operands to apply the operator"
 
   show (TokenParseE s)      = "parse error: unrecognised token (" ++ s ++ ")"
   show (FracParseE s)       = "parse error: invalid fraction componant (" ++ s ++ ")"
