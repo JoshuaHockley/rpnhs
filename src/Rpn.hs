@@ -90,10 +90,10 @@ rpn jtable = rpn'
                     else rpn' st' ts
 
           -- unconditional jump
-          Jump _    l -> jump st l
+          Jump _ l -> jump st l
 
           -- RET
-          RetT -> Ok (st, [])
+          RetT -> return (st, [])
 
           -- ERR
           ErrT -> withContext' $ mkErr UserErrorE
@@ -108,16 +108,16 @@ rpn jtable = rpn'
         jump st l = rpn' st =<< withContext' (toResult (UndefinedLabelE l) (lookup l jtable))
 
         checkCond :: State -> Result Bool
-        checkCond (v : _, _) = Ok . not $ isZero v
+        checkCond (v : _, _) = return . not $ isZero v
         checkCond _          = withContext' $ mkErr EmptyStackE
 
-    rpn' st _ = Ok (st, [])
+    rpn' st _ = return (st, [])
 
 
 
 processTokenPure :: TokenPure -> State -> Result State
 -- process a pure token with the state
-processTokenPure (ValT v) (s, vars) = Ok (v : s, vars)
+processTokenPure (ValT v) (s, vars) = return (v : s, vars)
 processTokenPure (OpT op) (s, vars) = (, vars) <$> toResult OperatorFailureE (processOp op s)
 processTokenPure (CmdT c) st        = runCmd c st
 
@@ -133,14 +133,14 @@ processOp _        _            = Nothing
 
 runCmd :: Command -> State -> Result State
 -- run a command
-runCmd (Pop n)      (s, vars)     = Ok (drop n s, vars)
-runCmd Clear        (s, vars)     = Ok ([], vars)
-runCmd (Dup n)      (v : s, vars) = Ok (replicate (n + 1) v ++ s, vars)
+runCmd (Pop n)      (s, vars)     = return (drop n s, vars)
+runCmd Clear        (s, vars)     = return ([], vars)
+runCmd (Dup n)      (v : s, vars) = return (replicate (n + 1) v ++ s, vars)
 runCmd (Dup _)      _             = mkErr EmptyStackE
 runCmd (Pull n)     (s, vars)     = (, vars) <$> toResult PullE (pullElem (n - 1) s)
 runCmd (Push n)     (s, vars)     = (, vars) <$> toResult PushE (pushElem n       s)
-runCmd Depth        (s, vars)     = Ok (I d : s, vars) where d = toInteger (length s)
-runCmd (Store iden) (v : s, vars) = Ok (s, setVar iden v vars)
+runCmd Depth        (s, vars)     = return (I d : s, vars) where d = toInteger (length s)
+runCmd (Store iden) (v : s, vars) = return (s, setVar iden v vars)
 runCmd (Store _)    _             = mkErr EmptyStackE
 runCmd (Load iden)  (s, vars)     = (, vars) . (: s) <$> getVar iden vars
 
@@ -150,11 +150,11 @@ runCmdPrint :: CommandPrint -> State -> Result [String]
 runCmdPrint (Print desc) (v : _, _)
   = case desc of
       Just (base, compl) -> return . showB compl base <$> toResult PrintBaseNonIntegerE (asI v)
-      _                  -> Ok . return $ show v
+      _                  -> return . return $ show v
 runCmdPrint (Print _)   _         = mkErr EmptyStackE
-runCmdPrint Stack       (s, _)    = Ok . maybeToList $ showStack s
+runCmdPrint Stack       (s, _)    = return . maybeToList $ showStack s
 runCmdPrint (View iden) (_, vars) = return . show <$> getVar iden vars
-runCmdPrint ViewAll     (_, vars) = Ok $ map showVar vars
+runCmdPrint ViewAll     (_, vars) = return $ map showVar vars
 
 -- vars
 getVar :: String -> Vars -> Result Value

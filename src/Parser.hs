@@ -29,9 +29,9 @@ parseToken s = case parseToken' s of
 --   this determines whether another paser should be tried
 -- the inner Result describes whether the string is valid in the context of the parser
 --   this allows for descriptive error messages on parse failures, and short circuiting
--- e.g. parseValue "hello"   -> Nothing          : the parser did not match
---      parseValue "0bhello" -> Just (Err ...)   : the parser matched, but the string was invalid
---      parseValue "0b1001"  -> Just (Ok ...)    : the parser matched, and the string was valid
+-- e.g. parseValue "hello"   -> Nothing           : the parser did not match
+--      parseValue "0bhello" -> Just (Left ...)   : the parser matched, but the string was invalid
+--      parseValue "0b1001"  -> Just (Right ...)  : the parser matched, and the string was valid
 type Parser a = String -> Maybe (Result a)
 
 
@@ -47,18 +47,18 @@ type ParseMap a = [([String], a)]
 
 parseFromMap :: ParseMap a -> Parser a
 -- generate a generic parser from a ParseMap
-parseFromMap pmap s = Ok <$> lookup s (expandMap pmap)
+parseFromMap pmap s = return <$> lookup s (expandMap pmap)
   where expandMap = concatMap (\(ss, x) -> map (, x) ss)
 
 parseWithInt :: [String] -> (Int -> a) -> Parser a
 -- generate a parser for a prefix followed by an integer (>= 1)
 --   e.g. pop3 -> Pop 3  where a :: Command
 parseWithInt prefixes handler s
-  = Ok . handler <$> mfilter (>= 1) (readMaybe =<< stripPrefixes s prefixes)
+  = return . handler <$> mfilter (>= 1) (readMaybe =<< stripPrefixes s prefixes)
 
 parseWithStr :: String -> (String -> a) -> Parser a
 -- generate a parser for a prefix followed by a non-empty string
-parseWithStr prefix handler s = Ok . handler <$> mfilter (/= "") (stripPrefix prefix s)
+parseWithStr prefix handler s = return . handler <$> mfilter (/= "") (stripPrefix prefix s)
 
 -- parsers
 parseToken' :: Parser Token
@@ -173,7 +173,7 @@ parseCommandIO = composeParsers [parseFromMap m, parsePrint, parseView]
                 (s, compl) = stripEndChar '~' form
 
         -- b/o/x form
-        parseBaseChar b c s = Ok . makePrint <$> (checkCompl =<< stripPrefix ('p' : [c]) s)
+        parseBaseChar b c s = return . makePrint <$> (checkCompl =<< stripPrefix ('p' : [c]) s)
           where
             makePrint compl = Print (Just (b, compl))
             checkCompl "~" = Just True   -- e.g. px~
@@ -183,13 +183,13 @@ parseCommandIO = composeParsers [parseFromMap m, parsePrint, parseView]
         parseOct = parseBaseChar 8  'o'
         parseHex = parseBaseChar 16 'x'
 
-    parseView s = Ok . View <$> stripPrefix "v" s
+    parseView s = return . View <$> stripPrefix "v" s
 
 
 parseValue = composeParsers [parseVI, parseVR, parseVF, parseVNeg, parseVBased, parseVConst]
   where
     -- n
-    parseVI s = Ok . I <$> readMaybe s
+    parseVI s = return . I <$> readMaybe s
 
     -- n/m
     parseVR s = reduceR <<$>> (buildR <$> splitOn '/' s)
@@ -199,7 +199,7 @@ parseValue = composeParsers [parseVI, parseVR, parseVF, parseVNeg, parseVBased, 
               where toResult' = toResult . FracParseE
 
     -- n.
-    parseVF f = Ok . F <$> readMaybe f
+    parseVF f = return . F <$> readMaybe f
 
     -- -[val]
     parseVNeg s = negateVal <<$>> (parseValue =<< stripPrefix "-" s)

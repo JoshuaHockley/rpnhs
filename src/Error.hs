@@ -4,31 +4,30 @@ import Value
 
 import Control.Monad
 import Data.Maybe
+import Data.Bifunctor
 
 
 -- result type for rpnhs
-data Result a = Ok  a
-              | Err Error
+type Result a = Either Error a
 
 mkErr :: ErrDesc -> Result a
 -- make a contextless erroroneous Result
-mkErr desc = Err $ Error desc Nothing
+mkErr desc = Left $ Error desc Nothing
 
 toResult :: ErrDesc -> Maybe a -> Result a
 -- convert a Maybe value to a Result, with a provided error description
-toResult _ (Just x) = Ok x
-toResult e _        = mkErr e
+toResult e = maybe (mkErr e) return
 
 assert :: Bool -> ErrDesc -> Result ()
 -- assert a predicate holds for a value
 -- if the predicate does not hold, fail with the provided error
 assert False e = mkErr e
-assert _     _ = Ok ()
+assert _     _ = return ()
 
 withContext :: EContext -> Result a -> Result a
 -- inject a context into a Result
-withContext ctx (Err (Error desc _)) = Err (Error desc (Just ctx))
-withContext _ r = r
+withContext ctx = first inject
+  where inject (Error desc _) = Error desc (Just ctx)
 
 
 -- error type
@@ -89,21 +88,4 @@ instance Show ErrDesc where
   show (DuplicateLabelE l)  = "label error: label " ++ l ++ " is defined multiple times"
 
   show UserErrorE           = "user error"
-
-
--- Result behaves like Maybe as a monad
--- in Err cases, the Result is unmodified
-instance Monad Result where
-  return = Ok
-
-  Ok  x >>= f = f x
-  Err e >>= f = Err e
-
-instance Applicative Result where
-  pure = return
-
-  (<*>) = ap
-
-instance Functor Result where
-  fmap f = (=<<) (return . f)
 

@@ -67,8 +67,8 @@ runInteractive ms prompt ePrintInstr ePrintStack
     -- return the next state and updated history (both unchanged on error)
     runLine (ms, h) s l
       = case res of
-          Ok (s', out) -> mapM_ putout out >> return (s', s : h)
-          Err e        -> putoute e        >> return (s,      h)
+          Right (s', out) -> mapM_ putout out >> return (s', s : h)
+          Left  e         -> putoute e        >> return (s,      h)
       where
         res = do
           (tokens, jtable) <- processLine ms (words l)

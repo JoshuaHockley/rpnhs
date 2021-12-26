@@ -12,8 +12,8 @@ import System.Exit
 runInline :: Macros -> Bool -> Bool -> Bool -> [String] -> IO ()
 runInline ms autoPrint ePrintInstr ePrintStack args
   = case res of
-      Ok ((s, _), out) -> success s out >> exitSuccess
-      Err e            -> failure e     >> exitFailure
+      Right ((s, _), out) -> success s out >> exitSuccess
+      Left  e             -> failure e     >> exitFailure
   where
     res = do
       (instructions, jtable) <- processLine ms (concatMap words args)
