@@ -4,7 +4,7 @@ module Interactive (runInteractive) where
 
 import Rpn (rpn, State, emptyState)
 import LineProcessor
-import Macros (Macros, parseMacro)
+import Macros (Macros, parseMacro, addMacro)
 import Error
 
 import System.Console.Haskeline
@@ -54,8 +54,9 @@ runInteractive ms prompt ePrintInstr ePrintStack
     -- macro definition
     handleInput (ms, h) s (stripPrefix ":def " -> Just m)
       = case parseMacro m of
-          Just m' -> run (m' : ms, h) s
-          _       -> outputStrLn "error: failed to parse macro" >> run (ms, h) s
+          Just m' -> run (ms', h) s
+            where ms' = addMacro ms m'
+          _ -> outputStrLn "error: failed to parse macro" >> run (ms, h) s
     -- run the calculator on the line
     handleInput (ms, h) s input = do
       (s', h') <- runLine (ms, h) s input

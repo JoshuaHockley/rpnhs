@@ -11,12 +11,13 @@ import Util (pullElem, pushElem)
 import Control.Monad
 import Data.Bifunctor (first, second)
 import Data.Maybe (maybeToList)
+import qualified Data.Map as M
 
 
 -- the state of the calculator
 type State = (Stack, Vars)
 
-emptyState = ([], [])
+emptyState = ([], M.empty) :: State
 
 -- a valid token
 data Token = TokenPure TokenPure
@@ -53,14 +54,14 @@ data CommandPrint = Print (Maybe (Int, Bool))  -- print the value at the top of 
                   | ViewAll                    -- print all variables with their values
 
 -- mapping of identifiers to Values
-type Vars = [(String, Value)]
+type Vars = M.Map String Value
 
 -- instructions for the calculator to execute
 -- the String is the source of the Token, used to provide context to errors
 type Instructions = [(Token, String)]
 
 -- mapping of labels to their target programs
-type JumpTable = [(String, Instructions)]
+type JumpTable = M.Map String Instructions
 
 
 rpn :: JumpTable -> State -> Instructions -> Result (State, [String])
@@ -105,7 +106,7 @@ rpn jtable = rpn'
 
         jump :: State -> String -> Result (State, [String])
         -- perform a jump to a label
-        jump st l = rpn' st =<< withContext' (toResult (UndefinedLabelE l) (lookup l jtable))
+        jump st l = rpn' st =<< withContext' (toResult (UndefinedLabelE l) (M.lookup l jtable))
 
         checkCond :: State -> Result Bool
         checkCond (v : _, _) = return . not $ isZero v
@@ -153,16 +154,18 @@ runCmdPrint (Print desc) (v : _, _)
 runCmdPrint (Print _)   _         = mkErr EmptyStackE
 runCmdPrint Stack       (s, _)    = return . maybeToList $ showStack s
 runCmdPrint (View iden) (_, vars) = return . show <$> getVar iden vars
-runCmdPrint ViewAll     (_, vars) = return $ map showVar vars
+runCmdPrint ViewAll     (_, vars) = return $ showVars vars
 
 -- vars
 getVar :: String -> Vars -> Result Value
-getVar iden = toResult (UndefinedVarE iden) . lookup iden
+getVar iden = toResult (UndefinedVarE iden) . M.lookup iden
 
 setVar :: String -> Value -> Vars -> Vars
 -- set a variable, overwriting if the identifier is already in use
-setVar iden v = ((iden, v) :) . filter ((/= iden) . fst)
+setVar = M.insert
 
-showVar :: (String, Value) -> String
-showVar (iden, v) = iden ++ " = " ++ show v
+showVars :: Vars -> [String]
+showVars = map showVar . M.toAscList
+  where
+    showVar (iden, v) = iden ++ " = " ++ show v
 

@@ -2,32 +2,39 @@ module Macros where
 
 import Control.Monad
 import Control.Error
+import qualified Data.Map as M
 import Data.List
 import System.IO
 import System.Environment
 
 
-type Macros = [Macro]
+-- mapping from macros to their expansion
+type Macros = M.Map String [String]
+
 -- pair of macro and its expansion
 -- e.g. ("triple", ["3", "*"])
 type Macro  = (String, [String])
 
-noMacros = []
+noMacros = M.empty
+
+
+addMacro :: Macros -> Macro -> Macros
+addMacro ms (m, ss) = M.insert m ss ms
 
 
 expandMacros :: Macros -> [String] -> [String]
 -- expand any occurrences of macros in the strings
--- expansion is performed only once
+-- expansion is performed recursivly, but with the expanded macro 'unavailable'
 expandMacros ms = concatMap expand
   where
-    expand s = case lookup s ms of
+    expand s = case M.lookup s ms of
                  Just ss -> expandMacros ms' ss
-                   where ms' = filter ((/= s) . fst) ms
+                   where ms' = M.delete s ms
                  _       -> [s]
 
 
 parseMacros :: [String] -> Maybe Macros
-parseMacros = mapM parseMacro . filter macroLine
+parseMacros = fmap M.fromList . mapM parseMacro . filter macroLine
   where
     macroLine ('#' : _) = False
     macroLine ""        = False

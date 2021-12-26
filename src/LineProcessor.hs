@@ -10,6 +10,7 @@ import Util (stripBrackets)
 
 import Control.Monad
 import Data.Bifunctor
+import qualified Data.Map as M
 
 
 processLine :: Macros -> [String] -> Result (Instructions, JumpTable)
@@ -35,4 +36,4 @@ extractLabels = fmap (\(_, ss, ls) -> (reverse ss, ls)) . foldM extract (0, [], 
     extract (i, ss, ls) s = return (i + 1, s : ss, ls)
 
 buildJumpTable :: Instructions -> [(String, Int)] -> JumpTable
-buildJumpTable is = map (second (`drop` is))
+buildJumpTable is = M.fromList . map (second (`drop` is))
