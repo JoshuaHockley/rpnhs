@@ -3,12 +3,14 @@ module Bases (showB, parseB, validBase) where
 import Error
 
 import Data.List (foldl', elemIndex)
+import Data.Array
 import Control.Monad (mfilter)
 
-import Debug.Trace
 
+digits :: Array Int Char
 -- available symbols for base representations
-digits = ['0'..'9'] ++ ['a'..'z']
+digits = listArray (0, length digits' - 1) digits'
+  where digits' = ['0'..'9'] ++ ['a'..'z']
 
 -- maximum base for printing/parsing
 maxBase = length digits
@@ -18,7 +20,6 @@ validBase b = b >= 2 && b <= maxBase
 
 parseB :: Bool -> Int -> String -> Result Integer
 -- parse an integer representation in an arbitrary base
--- pre: base <= maxBase
 parseB compl b s = (if compl then fromRadixComp b (length s) else id)
                    .   compose b
                    <$> digitValues b s
@@ -28,7 +29,7 @@ parseB compl b s = (if compl then fromRadixComp b (length s) else id)
     digitValues b s  = mapM digitValue s
       where
         digitValue :: Char -> Result Int
-        digitValue c = toResult (InvalidDigitE b c) $ mfilter (< b) (elemIndex c digits)
+        digitValue c = toResult (InvalidDigitE b c) $ mfilter (< b) (elemIndex c (elems digits))
 
 
 showB :: Bool -> Int -> Integer -> String
@@ -42,8 +43,8 @@ showB compl b i
   | otherwise = ('-' :) . showB' $ decomp b (abs i)
   where
     showB' :: [Int] -> String
-    showB' [] = [head digits]
-    showB' xs = map (digits !!) xs  -- values < maxBase
+    showB' [] = [digits ! 0]
+    showB' xs = map (digits !) xs  -- values < maxBase
 
     handlePositiveComp :: Integer -> [Int]
     handlePositiveComp i
