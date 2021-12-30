@@ -16,8 +16,8 @@ runInline ms autoPrint ePrintInstr ePrintStack args
       Left  e             -> failure e     >> exitFailure
   where
     res = do
-      (instructions, jtable) <- processLine ms (concatMap words args)
-      rpn jtable emptyState instructions
+      (is, jtable) <- processLine ms (concatMap words args)
+      rpn jtable emptyState is
 
     success (v : _) []
       | autoPrint = print v

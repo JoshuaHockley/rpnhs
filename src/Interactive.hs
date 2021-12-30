@@ -72,8 +72,8 @@ runInteractive ms prompt ePrintInstr ePrintStack
           Left  e         -> putoute e        >> return (s,      h)
       where
         res = do
-          (tokens, jtable) <- processLine ms (words l)
-          rpn jtable s tokens
+          (is, jtable) <- processLine ms (words l)
+          rpn jtable s is
         putout       = (outputStr " " >>) . outputStrLn
         putoute      = mapM_ outputStrLn . showE'
 

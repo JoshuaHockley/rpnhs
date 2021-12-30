@@ -10,7 +10,7 @@ import Util (pullElem, pushElem)
 
 import Control.Monad
 import Data.Bifunctor (first, second)
-import Data.Maybe (maybeToList)
+import Data.Maybe (maybeToList, listToMaybe, catMaybes)
 import qualified Data.Map as M
 
 
@@ -19,22 +19,19 @@ type State = (Stack, Vars)
 
 emptyState = ([], M.empty) :: State
 
--- a valid token
-data Token = TokenPure TokenPure
-           | CmdPrintT CommandPrint
+
+-- an instruction
+data Instr = InstrPure InstrPure
+           | CommandPrint CommandPrint
            | Jump Bool String  -- jump to a label
                                -- if flag is set, only jump when the top of the stack is non-zero
            | RetT
            | ErrT
 
--- a token that has a pure effect on the state
-data TokenPure = ValT Value
-               | OpT  Operator
-               | CmdT Command
-
-data Operator = Op1 Operator1
-              | Op2 Operator2
-              | OpF Operator2  -- folding operator
+-- an instruction that has a pure effect on the state
+data InstrPure = Value Value
+               | Command Command
+               | Operator Operator
 
 -- a command that modifies the state
 data Command = Pop Int        -- remove the top n values from the stack
@@ -45,6 +42,10 @@ data Command = Pop Int        -- remove the top n values from the stack
              | Store String   -- pop the top of the stack and store it in a variable
              | Load String    -- load a variable onto the stack
              | Depth          -- push the depth of the stack
+
+data Operator = Op1 Operator1  -- unary operator
+              | Op2 Operator2  -- binary operator
+              | OpF Operator2  -- folding operator
 
 -- a command that produces an string to print
 data CommandPrint = Print (Maybe (Int, Bool))  -- print the value at the top of the stack
@@ -58,7 +59,7 @@ type Vars = M.Map String Value
 
 -- instructions for the calculator to execute
 -- the String is the source of the Token, used to provide context to errors
-type Instructions = [(Token, String)]
+type Instructions = [(Instr, String)]
 
 -- mapping of labels to their target programs
 type JumpTable = M.Map String Instructions
@@ -70,17 +71,17 @@ rpn :: JumpTable -> State -> Instructions -> Result (State, [String])
 rpn jtable = rpn'
   where
     rpn' :: State -> Instructions -> Result (State, [String])
-    rpn' st@(s, _) ts'@((t, str) : ts)
-      = case t of
-          -- execute a pure token on the state
-          TokenPure t -> do
-            st' <- withContext' $ processTokenPure t st
-            rpn' st' ts
+    rpn' st@(s, _) is'@((i, _) : is)
+      = case i of
+          -- execute a pure instruction on the state
+          InstrPure i -> do
+            st' <- withContext' $ processInstrPure i st
+            rpn' st' is
 
           -- record output from a print command
-          CmdPrintT c -> do
+          CommandPrint c -> do
             l <- withContext' $ runCmdPrint c st
-            (st', out) <- rpn' st ts
+            (st', out) <- rpn' st is
             return (st', l ++ out)
 
           -- conditional jump
@@ -88,7 +89,7 @@ rpn jtable = rpn'
             cond <- checkCond st
             let st' = first (drop 1) st  -- pop cond value
             if cond then jump st' l
-                    else rpn' st' ts
+                    else rpn' st' is
 
           -- unconditional jump
           Jump _ l -> jump st l
@@ -102,7 +103,7 @@ rpn jtable = rpn'
       where
         withContext' :: Result a -> Result a
         -- inject the current context into an error
-        withContext' = withContext (map snd ts', s)
+        withContext' = withContext (map snd is', s)
 
         jump :: State -> String -> Result (State, [String])
         -- perform a jump to a label
@@ -115,20 +116,11 @@ rpn jtable = rpn'
     rpn' st _ = return (st, [])
 
 
-
-processTokenPure :: TokenPure -> State -> Result State
--- process a pure token with the state
-processTokenPure (ValT v) (s, vars) = return (v : s, vars)
-processTokenPure (OpT op) (s, vars) = (, vars) <$> processOp op s
-processTokenPure (CmdT c) st        = runCmd c st
-
-
-processOp :: Operator -> Stack -> Result Stack
--- process an operator on the stack
-processOp (Op1 op) (v : s)      = (: s)  <$> toResult OperatorFailureE (op v)
-processOp (Op2 op) (v : v' : s) = (: s)  <$> toResult OperatorFailureE (op v' v)
-processOp (OpF op) (v : v' : s) = return <$> toResult OperatorFailureE (foldM op v (v' : s))
-processOp _        _            = mkErr NotEnoughOperandsE
+processInstrPure :: InstrPure -> State -> Result State
+-- process a pure instruction with the state
+processInstrPure (Value v)     (s, vars) = return (v : s, vars)
+processInstrPure (Command c)   st        = runCmd c st
+processInstrPure (Operator op) (s, vars) = (, vars) <$> processOp op s
 
 
 runCmd :: Command -> State -> Result State
@@ -145,6 +137,14 @@ runCmd (Store _)    _             = mkErr EmptyStackE
 runCmd (Load iden)  (s, vars)     = (, vars) . (: s) <$> getVar iden vars
 
 
+processOp :: Operator -> Stack -> Result Stack
+-- process an operator on the stack
+processOp (Op1 op) (v : s)      = (: s)  <$> toResult OperatorFailureE (op v)
+processOp (Op2 op) (v : v' : s) = (: s)  <$> toResult OperatorFailureE (op v' v)
+processOp (OpF op) (v : v' : s) = return <$> toResult OperatorFailureE (foldM op v (v' : s))
+processOp _        _            = mkErr NotEnoughOperandsE
+
+
 runCmdPrint :: CommandPrint -> State -> Result [String]
 -- run an print command from the state
 runCmdPrint (Print desc) (v : _, _)
@@ -155,6 +155,7 @@ runCmdPrint (Print _)   _         = mkErr EmptyStackE
 runCmdPrint Stack       (s, _)    = return . maybeToList $ showStack s
 runCmdPrint (View iden) (_, vars) = return . show <$> getVar iden vars
 runCmdPrint ViewAll     (_, vars) = return $ showVars vars
+
 
 -- vars
 getVar :: String -> Vars -> Result Value

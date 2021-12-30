@@ -1,6 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 
-module Parser (parseToken) where
+module Parser (parseInstr) where
 
 import Rpn
 import Value
@@ -17,11 +17,11 @@ import Control.Monad
 import Control.Applicative
 
 
-parseToken :: String -> Result Token
--- parse a token (wrapper for parseToken')
-parseToken s = case parseToken' s of
+parseInstr :: String -> Result Instr
+-- parse an instruction
+parseInstr s = case parseInstr' s of
                  Just r -> r                      -- use descriptive result
-                 _      -> mkErr (TokenParseE s)  -- no parser matched, use generic error
+                 _      -> mkErr (InstrParseE s)  -- no parser matched, use generic error
 
 
 -- a parser attempts to produce a value of type 'a' from a String
@@ -42,7 +42,7 @@ composeParsers :: [Parser a] -> Parser a
 composeParsers ps s = foldl (<|>) Nothing (map ($ s) ps)
 
 -- map from sets of strings to parse results
--- e.g. print, p -> CmdIOT Print  where a :: Token
+-- e.g. clear, c -> CmdT Clear
 type ParseMap a = [([String], a)]
 
 parseFromMap :: ParseMap a -> Parser a
@@ -60,14 +60,15 @@ parseWithStr :: String -> (String -> a) -> Parser a
 -- generate a parser for a prefix followed by a non-empty string
 parseWithStr prefix handler s = return . handler <$> mfilter (/= "") (stripPrefix prefix s)
 
+
 -- parsers
-parseToken' :: Parser Token
+parseInstr' :: Parser Instr
 -- the master parser, composes each parser and raise their types to Token
-parseToken' = composeParsers [operator, command, commandIO, jump, branch, parseFromMap m, value]  -- parsers to try (l to r)
-  where operator  = fmap2 (TokenPure . OpT)  . parseOperator
-        command   = fmap2 (TokenPure . CmdT) . parseCommand
-        commandIO = fmap2 CmdPrintT          . parseCommandIO
-        value     = fmap2 (TokenPure . ValT) . parseValue
+parseInstr' = composeParsers [operator, command, commandIO, jump, branch, parseFromMap m, value]  -- parsers to try (l to r)
+  where operator  = fmap2 (InstrPure . Operator) . parseOperator
+        command   = fmap2 (InstrPure . Command)  . parseCommand
+        commandIO = fmap2 CommandPrint           . parseCommandIO
+        value     = fmap2 (InstrPure . Value)    . parseValue
         jump      = parseWithStr "J" (Jump False)
         branch    = parseWithStr "B" (Jump True)
         m = [(["RET"], RetT),

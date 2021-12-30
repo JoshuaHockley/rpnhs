@@ -2,7 +2,7 @@
 
 module LineProcessor (processLine) where
 
-import Rpn (Token, Instructions, JumpTable)
+import Rpn (Instr, Instructions, JumpTable)
 import Parser
 import Macros
 import Error
@@ -19,7 +19,7 @@ processLine :: Macros -> [String] -> Result (Instructions, JumpTable)
 processLine ms l = do
   let l' = expandMacros ms l
   (ss, labels) <- extractLabels l'
-  tokens <- mapM parseToken ss
+  tokens <- mapM parseInstr ss
   let is = zip tokens ss
   let jt = buildJumpTable is labels
   return (is, jt)

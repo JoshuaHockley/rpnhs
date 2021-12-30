@@ -40,7 +40,7 @@ Note the single quotes used in the second example. This is to prevent the shell 
 An alternative solution would be to use `mul` instead which is an alias for `*`. See [operators](#operators) for a complete list of operator aliases.
 
 If execution fails, no output will be made to stdout, and an error message will be printed to stderr.\
-`rpnhs 1 2 + p hi` produces only `parse error: unrecognised token (hi)`
+`rpnhs 1 2 + p hi` produces only `parse error: unrecognised instruction (hi)`
 
 #### Interactive
 To start the interactive mode, run rpnhs with no arguments.\
@@ -344,7 +344,7 @@ Macros cannot contain themselves. This includes an indirect reference through ot
 Attempting to use such a macro will produce an error like the following:
 ```
 > a
-parse error: unrecognised token (a)
+parse error: unrecognised instruction (a)
 ```
 
 #### Saved macros
@@ -473,11 +473,11 @@ The `<[]>` macros use the numbering `[x1, x2, x3, ... xn] = <<x1, <<x2, <<x3, ..
 # godel encode (N, N) -> N+
 <<e>>  2 * 1 + s 2 s ^ *
 # godel decode N+ -> (N, N)
-<<d>>  0 s [S] d 2 %     BE 1 >> s 1 + s JS [E] 1 >>
+<<d>>  0 s [S] d 2 % BE 1 >> s 1 + s JS [E] 1 >>
 # godel encode (N, N) -> N
 <e>    <<e>> 1 -
 # godel decode N  -> (N, N)
-<d>    0 s [S] d 2 % 0 = BE 1 >> s 1 + s JS [E] 1 >>
+<d>    1 + <<d>>
 # godel encode [N] ->  N
 <[e]>  0 [S'] z 1 = BE' <<e>> JS' [E']
 # godel decode  N  -> [N]

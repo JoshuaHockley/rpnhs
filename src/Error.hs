@@ -45,13 +45,13 @@ data ErrDesc = EmptyStackE               -- empty stack for a command that needs
              | OperatorFailureE          -- operator failed (e.g. invalid types)
              | NotEnoughOperandsE        -- not enough operands to apply an operator
 
-             | TokenParseE String        -- failed to parse a string as a token
+             | InstrParseE String        -- failed to parse a string as an instruction
              | FracParseE String         -- fraction literal contained an invalid componant e.g. 3/hi
              | InvalidBaseSE String      -- base not an integer
              | InvalidBaseE Int          -- invalid base to print/read an integer
              | InvalidDigitE Int Char    -- invalid digit under a base
              | EmptyBaseLiteralE         -- no digits given in a base literal
-              
+
              | UndefinedLabelE String    -- attempt to jump to an undefined label
              | DuplicateLabelE String    -- label defined multiple times
 
@@ -79,7 +79,7 @@ instance Show ErrDesc where
   show OperatorFailureE     = "error: operator failed"
   show NotEnoughOperandsE   = "error: not enough operands to apply the operator"
 
-  show (TokenParseE s)      = "parse error: unrecognised token (" ++ s ++ ")"
+  show (InstrParseE s)      = "parse error: unrecognised instruction (" ++ s ++ ")"
   show (FracParseE s)       = "parse error: invalid fraction componant (" ++ s ++ ")"
   show (InvalidBaseSE s)    = "base error: invalid base (" ++ ")"
   show (InvalidBaseE i)     = "base error: invalid base (" ++ show i ++ ")"
