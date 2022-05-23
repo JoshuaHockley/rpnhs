@@ -148,7 +148,7 @@ opLn v | isNeg v || isZero v = Nothing
 opLn v = buildFOp1' log v
 
 -- log base 2
-opLog2 = opLog (I 2)
+opLog2 = flip opLog (I 2)
 
 -- factorial
 opFact v | isNeg v = Nothing
