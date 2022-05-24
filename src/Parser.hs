@@ -64,15 +64,12 @@ parseWithStr prefix handler s = return . handler <$> mfilter (/= "") (stripPrefi
 -- parsers
 parseInstr' :: Parser Instr
 -- the master parser, composes each parser and raise their types to Token
-parseInstr' = composeParsers [operator, command, commandIO, jump, branch, parseFromMap m, value]  -- parsers to try (l to r)
+parseInstr' = composeParsers [operator, command, commandIO, err, value]  -- parsers to try (l to r)
   where operator  = fmap2 (InstrPure . Operator) . parseOperator
         command   = fmap2 (InstrPure . Command)  . parseCommand
         commandIO = fmap2 CommandPrint           . parseCommandIO
         value     = fmap2 (InstrPure . Value)    . parseValue
-        jump      = parseWithStr "J" (Jump False)
-        branch    = parseWithStr "B" (Jump True)
-        m = [(["RET"], RetT),
-             (["ERR"], ErrT)]
+        err       = parseFromMap [(["ERR"], Err)]
 
 
 parseOperator :: Parser Operator

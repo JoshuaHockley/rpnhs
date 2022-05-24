@@ -23,10 +23,7 @@ emptyState = ([], M.empty) :: State
 -- an instruction
 data Instr = InstrPure InstrPure
            | CommandPrint CommandPrint
-           | Jump Bool String  -- jump to a label
-                               -- if flag is set, only jump when the top of the stack is non-zero
-           | RetT
-           | ErrT
+           | Err
 
 -- an instruction that has a pure effect on the state
 data InstrPure = Value Value
@@ -61,14 +58,11 @@ type Vars = M.Map String Value
 -- the String is the source of the Token, used to provide context to errors
 type Instructions = [(Instr, String)]
 
--- mapping of labels to their target programs
-type JumpTable = M.Map String Instructions
 
-
-rpn :: JumpTable -> State -> Instructions -> Result (State, [String])
+rpn :: State -> Instructions -> Result (State, [String])
 -- run the calulator on a list of instructions
 -- returns the final state and a list of output to print
-rpn jtable = rpn'
+rpn = rpn'
   where
     rpn' :: State -> Instructions -> Result (State, [String])
     rpn' st@(s, _) is'@((i, _) : is)
@@ -84,30 +78,13 @@ rpn jtable = rpn'
             (st', out) <- rpn' st is
             return (st', l ++ out)
 
-          -- conditional jump
-          Jump True l -> do
-            cond <- checkCond st
-            let st' = first (drop 1) st  -- pop cond value
-            if cond then jump st' l
-                    else rpn' st' is
-
-          -- unconditional jump
-          Jump _ l -> jump st l
-
-          -- RET
-          RetT -> return (st, [])
-
           -- ERR
-          ErrT -> withContext' $ mkErr UserErrorE
+          Err -> withContext' $ mkErr UserErrorE
 
       where
         withContext' :: Result a -> Result a
         -- inject the current context into an error
         withContext' = withContext (map snd is', s)
-
-        jump :: State -> String -> Result (State, [String])
-        -- perform a jump to a label
-        jump st l = rpn' st =<< withContext' (toResult (UndefinedLabelE l) (M.lookup l jtable))
 
         checkCond :: State -> Result Bool
         checkCond (v : _, _) = return . not $ isZero v
