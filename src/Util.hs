@@ -2,19 +2,11 @@
 
 module Util where
 
-import Data.List
-import Data.Bifunctor (first, second)
-import Control.Error
+import Data.Bifunctor (second)
 
 
 (.:) = (.) . (.)
 infixl 7 .:
-
-fmap2 = fmap . fmap
-
-(<<$>>) = fmap2
-infixl 4 <<$>>
-
 
 removeAt :: Int -> [a] -> Maybe (a, [a])
 -- remove the element at index n from a list
@@ -44,40 +36,4 @@ pushElem :: Int -> [a] -> Maybe [a]
 -- fails if n >= length xs
 pushElem n (x : xs) = insertAt n x xs
 pushElem _ _        = Nothing
-
-splitOn :: Eq a => a -> [a] -> Maybe ([a], [a])
--- split on an element of a list
--- the sublists the the left and right are returned
-splitOn x' (x : xs)
-  | x == x'   = Just ([], xs)
-  | otherwise = first (x :) <$> splitOn x' xs
-splitOn _ _   = Nothing  -- x' not present
-
-stripPrefixes :: String -> [String] -> Maybe String
--- try to strip each prefix from the string
--- if any match, the remaining string after the prefix is returned
-stripPrefixes s = foldl tryStrip Nothing
-  where tryStrip (Just s') _ = Just s'
-        tryStrip _         p = stripPrefix p s
-
-stripChar :: Char -> String -> (String, Bool)
--- if the string begins with c, strip it
--- otherwise do nothing
--- Bool describes whether the character was found
-stripChar c' (c : s) | c == c' = (s, True)
-stripChar _  s                 = (s, False)
-
-stripEndChar :: Char -> String -> (String, Bool)
--- same as stripChar but on the final character of the string
-stripEndChar _ [] = ([], False)
-stripEndChar c s
-  | last s == c = (init s, True )
-  | otherwise   = (s,      False)
-
-stripBrackets :: String -> Maybe String
--- strip square brackets from each end of a string
-stripBrackets s = do
-  '[' <- headMay s
-  ']' <- lastMay s
-  return . tail . init $ s
 

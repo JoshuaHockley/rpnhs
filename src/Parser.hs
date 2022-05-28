@@ -1,235 +1,231 @@
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE OverloadedStrings #-}
 
-module Parser (parseInstr) where
+module Parser (parseInstructions) where
 
 import Rpn
 import Value
 import Operator
 import Bases
 import Error
-import Util (fmap2, (<<$>>), splitOn, stripPrefixes, stripChar, stripEndChar)
+import Util ((.:))
 
-import Text.Read
-import Data.Ratio
-import Data.List
-import Data.Maybe
-import Control.Monad
-import Control.Applicative
-
-
-parseInstr :: String -> Result Instr
--- parse an instruction
-parseInstr s = case parseInstr' s of
-                 Just r -> r                      -- use descriptive result
-                 _      -> mkErr (InstrParseE s)  -- no parser matched, use generic error
+import Text.Megaparsec
+import Text.Megaparsec.Char
+import qualified Text.Megaparsec.Char.Lexer as L
+import Data.Text (Text)
+import qualified Data.Text as T
+import Data.Ratio ((%))
+import Data.Maybe (isJust, fromMaybe)
+import Data.Tuple (swap)
+import Control.Monad (void)
 
 
--- a parser attempts to produce a value of type 'a' from a String
--- the outer Maybe describes whether the parser 'matched' the input
---   this determines whether another paser should be tried
--- the inner Result describes whether the string is valid in the context of the parser
---   this allows for descriptive error messages on parse failures, and short circuiting
--- e.g. parseValue "hello"   -> Nothing           : the parser did not match
---      parseValue "0bhello" -> Just (Left ...)   : the parser matched, but the string was invalid
---      parseValue "0b1001"  -> Just (Right ...)  : the parser matched, and the string was valid
-type Parser a = String -> Maybe (Result a)
+parseInstructions :: Text -> ParseResult Instructions
+-- parse a program source into a list of instructions
+parseInstructions = parse (pInstructions <* eof) ""
 
 
--- parser utils
-
-composeParsers :: [Parser a] -> Parser a
--- compose a list of parsers by trying each in order until one matches
-composeParsers ps s = foldl (<|>) Nothing (map ($ s) ps)
-
--- map from sets of strings to parse results
--- e.g. clear, c -> CmdT Clear
-type ParseMap a = [([String], a)]
-
-parseFromMap :: ParseMap a -> Parser a
--- generate a generic parser from a ParseMap
-parseFromMap pmap s = return <$> lookup s (expandMap pmap)
-  where expandMap = concatMap (\(ss, x) -> map (, x) ss)
-
-parseWithInt :: [String] -> (Int -> a) -> Parser a
--- generate a parser for a prefix followed by an integer (>= 1)
---   e.g. pop3 -> Pop 3  where a :: Command
-parseWithInt prefixes handler s
-  = return . handler <$> mfilter (>= 1) (readMaybe =<< stripPrefixes s prefixes)
-
-parseWithStr :: String -> (String -> a) -> Parser a
--- generate a parser for a prefix followed by a non-empty string
-parseWithStr prefix handler s = return . handler <$> mfilter (/= "") (stripPrefix prefix s)
+type Parser = Parsec LogicParseError Text
 
 
--- parsers
-parseInstr' :: Parser Instr
--- the master parser, composes each parser and raise their types to Token
-parseInstr' = composeParsers [operator, command, commandIO, err, value]  -- parsers to try (l to r)
-  where operator  = fmap2 (InstrPure . Operator) . parseOperator
-        command   = fmap2 (InstrPure . Command)  . parseCommand
-        commandIO = fmap2 CommandPrint           . parseCommandIO
-        value     = fmap2 (InstrPure . Value)    . parseValue
-        err       = parseFromMap [(["ERR"], Err)]
-
-
-parseOperator :: Parser Operator
-parseOperator = parseFromMap m
-  where m = [(["abs"]               , Op1 opAbs      ),
-             (["neg", "negate"]     , Op1 opNegate   ),
-             (["recip"]             , Op1 opRecip    ),
-             (["sqrt", "root"]      , Op1 opSqrt     ),
-             (["exp", "e^"]         , Op1 opExp      ),
-             (["ln"]                , Op1 opLn       ),
-             (["log2"]              , Op1 opLog2     ),
-             (["fact", "!"]         , Op1 opFact     ),
-             (["add", "plus", "+"]  , Op2 opAdd      ),
-             (["sub", "minus", "-"] , Op2 opSubtract ),
-             (["mul", "times", "*"] , Op2 opMultiply ),
-             (["div", "/"]          , Op2 opDivide   ),
-             (["idiv", "i/"]        , Op2 opIDivide  ),
-             (["mod", "%"]          , Op2 opMod      ),
-             (["pow", "^"]          , Op2 opPower    ),
-             (["log"]               , Op2 opLog      ),
-             (["ffact", "f!"]       , Op2 opFFact    ),
-             (["rfact", "r!"]       , Op2 opRFact    ),
-             (["sin"]               , Op1 opSin      ),
-             (["cos"]               , Op1 opCos      ),
-             (["tan"]               , Op1 opTan      ),
-             (["sinh"]              , Op1 opSinh     ),
-             (["cosh"]              , Op1 opCosh     ),
-             (["tanh"]              , Op1 opTanh     ),
-             (["asin", "arcsin"]    , Op1 opAsin     ),
-             (["acos", "arccos"]    , Op1 opAcos     ),
-             (["atan", "arctan"]    , Op1 opAtan     ),
-             (["asinh", "arcsinh"]  , Op1 opAsinh    ),
-             (["acosh", "arccosh"]  , Op1 opAcosh    ),
-             (["atanh", "arctanh"]  , Op1 opAtanh    ),
-             (["deg"]               , Op1 opDeg      ),
-             (["rad"]               , Op1 opRad      ),
-             (["not", "~"]          , Op1 opNot      ),
-             (["and", "&"]          , Op2 opAnd      ),
-             (["or", "|"]           , Op2 opOr       ),
-             (["nand", "~&"]        , Op2 opNand     ),
-             (["nor", "~|"]         , Op2 opNor      ),
-             (["xor"]               , Op2 opXor      ),
-             (["lshift", "<<"]      , Op2 opLShift   ),
-             (["rshift", ">>"]      , Op2 opRShift   ),
-             (["lt", "<"]           , Op2 opLt       ),
-             (["lte", "<="]         , Op2 opLte      ),
-             (["eq", "==", "="]     , Op2 opEq       ),
-             (["neq", "!="]         , Op2 opNeq      ),
-             (["gte", ">="]         , Op2 opGte      ),
-             (["gt", ">"]           , Op2 opGt       ),
-             (["rnd", "round"]      , Op1 opRnd      ),
-             (["floor"]             , Op1 opFloor    ),
-             (["ceil", "ceiling"]   , Op1 opCeil     ),
-             (["fl", "float"]       , Op1 opFloat    ),
-             (["++"]                , OpF opAdd      ),
-             (["**"]                , OpF opMultiply ),
-             (["&&"]                , OpF opAnd      ),
-             (["||"]                , OpF opOr       )]
-
-
-parseCommand :: Parser Command
-parseCommand = composeParsers [parseFromMap m, parsePop, parseDup, parsePull, parsePush, parseStore, parseLoad]
+pInstructions :: Parser Instructions
+pInstructions = space *> many pInstruction
   where
-    m = [(["pop", "r"]   , Pop 1  ),
-         (["clear", "c"] , Clear  ),
-         (["dup", "d"]   , Dup 1  ),
-         (["swap", "s"]  , Push 1 ),  -- alias for push1
-         (["depth", "z"] , Depth  )]
-    parsePop    = parseWithInt ["pop", "r"]   Pop
-    parseDup    = parseWithInt ["dup", "d"]   Dup
-    parsePull   = parseWithInt ["pull", "pl"] Pull
-    parsePush   = parseWithInt ["push", "ps"] Push
-    parseStore  = parseWithStr "s"            Store
-    parseLoad   = parseWithStr "l"            Load
+    pInstruction = swap .: (,) <$> getOffset <*> pInstr
 
 
-parseCommandIO :: Parser CommandPrint
-parseCommandIO = composeParsers [parseFromMap m, parsePrint, parseView]
+pInstr :: Parser Instr
+pInstr = choice [InstrPure . Command  <$> pCommand,
+                 InstrPure . Operator <$> pOperator,
+                 CommandPrint         <$> pCommandPrint,
+                 InstrPure . Value    <$> pValue]
+
+
+pValue :: Parser Value
+pValue = signedVal (choice [pLit, pConst] <?> "value") <?> "value"
   where
-    m = [(["print", "p"] , Print Nothing ),
-         (["stack", "f"] , Stack         ),
-         (["view", "v"]  , ViewAll       )]
+    pLit :: Parser Value
+    pLit = lexeme $ choice [F <$> pF, R <$> pR, I <$> pI]
 
-    -- p'n(c) : print in base n
-    -- pb(c)  : print in base 2
-    -- po(c)  : print in base 8
-    -- px(c)  : print in base 16
-    -- print in radix complement when 'c' is given
-    parsePrint = composeParsers [parseBaseN, parseBin, parseOct, parseHex]
+    pI :: Parser Integer
+    pI = withBase <|> default'
       where
-        -- 'n form
-        parseBaseN s = parseBaseN' <$> stripPrefix "p'" s
-          where
-            parseBaseN' form = do
-              b  <- toResult (InvalidBaseSE s) (readMaybe s)
-              assert (validBase b) (InvalidBaseE b)
-              return $ Print (Just (b, compl))
-              where
-                (s, compl) = stripEndChar '~' form
+        withBase = do
+          ((base, compl), digits) <- (,) <$> parseBase <*> some alphaNumChar
+          case parseB compl base digits of
+            Left  parseE -> customFailure parseE
+            Right n      -> pure n
+        default' = L.decimal
 
-        -- b/o/x form
-        parseBaseChar b c s = return . makePrint <$> (checkCompl =<< stripPrefix ('p' : [c]) s)
-          where
-            makePrint compl = Print (Just (b, compl))
-            checkCompl "~" = Just True   -- e.g. px~
-            checkCompl ""  = Just False  -- e.g. px
-            checkCompl _   = Nothing     -- e.g. pxhi
-        parseBin = parseBaseChar 2  'b'
-        parseOct = parseBaseChar 8  'o'
-        parseHex = parseBaseChar 16 'x'
+    pR :: Parser Rational
+    pR = (%) <$> try (L.decimal <* char '/') <*> L.decimal
 
-    parseView s = return . View <$> stripPrefix "v" s
+    pF :: Parser Double
+    pF = try L.float
 
-
-parseValue = composeParsers [parseVI, parseVR, parseVF, parseVNeg, parseVBased, parseVConst]
-  where
-    -- n
-    parseVI s = return . I <$> readMaybe s
-
-    -- n/m
-    parseVR s = reduceR <<$>> (buildR <$> splitOn '/' s)
-      where buildR (s', s'') = do i'  <- toResult' s'  $ readMaybe s'
-                                  i'' <- toResult' s'' $ readMaybe s''
-                                  return $ i' % i''
-              where toResult' = toResult . FracParseE
-
-    -- n.
-    parseVF f = return . F <$> readMaybe f
-
-    -- -[val]
-    parseVNeg s = negateVal <<$>> (parseValue =<< stripPrefix "-" s)
-
-    -- n(~)'[int]     : base n literal
-    -- (0)b(~)[int]   : base 2 literal
-    -- (0)o(~)[int]   : base 8 literal
-    -- (0)x(~)[int]   : base 16 literal
-    -- literals are interpretted as radix complement form when 'c' is given
-    parseVBased = fmap2 I . composeParsers [parseBaseN, parseBin, parseOct, parseHex]
-      where
-        -- n' form
-        parseBaseN s = parseBaseN' <$> splitOn '\'' s
-          where
-            parseBaseN' (form, lit) = do
-              b  <- toResult (InvalidBaseSE s) (readMaybe base)
-              assert (validBase b) (InvalidBaseE b)
-              parseB compl b lit
-              where
-                (base, compl) = stripEndChar '~' form
-
-        -- b/o/x form
-        parseBaseChar b c s = parseBaseChar' <$> stripPrefixes s ['0' : [c], [c]]
-          where
-            parseBaseChar' s = parseB compl b lit
-              where
-                (lit, compl) = stripChar '~' s
-        parseBin = parseBaseChar 2  'b'
-        parseOct = parseBaseChar 8  'o'
-        parseHex = parseBaseChar 16 'x'
-
-    parseVConst = parseFromMap m
+    pConst :: Parser Value
+    pConst = parseFromMap m
       where m = [(["pi"] , F pi      ),
                  (["e"]  , F (exp 1) ),
                  (["g"]  , F 9.81    )]
+
+    signedVal :: Parser Value -> Parser Value
+    signedVal pVal = do
+      neg <- parsePrefix (char '-')
+      (if neg then negateVal else id) <$> pVal
+
+
+pCommand :: Parser Command
+pCommand = choice [parseFromMap m, pPop, pDup, pPull, pPush, pStore, pLoad] <?> "command"
+  where
+    m = [(["clear", "c"] , Clear  ),
+         (["swap" , "s"] , Push 1 ),
+         (["depth", "z"] , Depth  )]
+    pPop   = withIntOpt 1 ["pop"  , "r" ] Pop
+    pDup   = withIntOpt 1 ["dup"  , "d" ] Dup
+    pPull  = withInt      ["pull" , "pl"] Pull
+    pPush  = withInt      ["push" , "ps"] Push
+    pStore = withVar      ["store", "s" ] Store
+    pLoad  = withVar      ["load" , "l" ] Load
+
+
+pOperator :: Parser Operator
+pOperator = parseFromMap m <?> "operator"
+  where
+    m = [(["abs"]               , Op1 opAbs      ),
+         (["negate", "neg"]     , Op1 opNegate   ),
+         (["recip"]             , Op1 opRecip    ),
+         (["sqrt", "root"]      , Op1 opSqrt     ),
+         (["exp", "e^"]         , Op1 opExp      ),
+         (["ln"]                , Op1 opLn       ),
+         (["log2"]              , Op1 opLog2     ),
+         (["fact", "!"]         , Op1 opFact     ),
+         (["add", "plus", "+"]  , Op2 opAdd      ),
+         (["sub", "minus", "-"] , Op2 opSubtract ),
+         (["mul", "times", "*"] , Op2 opMultiply ),
+         (["div", "/"]          , Op2 opDivide   ),
+         (["idiv", "i/"]        , Op2 opIDivide  ),
+         (["mod", "%"]          , Op2 opMod      ),
+         (["pow", "^"]          , Op2 opPower    ),
+         (["log"]               , Op2 opLog      ),
+         (["ffact", "f!"]       , Op2 opFFact    ),
+         (["rfact", "r!"]       , Op2 opRFact    ),
+         (["sin"]               , Op1 opSin      ),
+         (["cos"]               , Op1 opCos      ),
+         (["tan"]               , Op1 opTan      ),
+         (["sinh"]              , Op1 opSinh     ),
+         (["cosh"]              , Op1 opCosh     ),
+         (["tanh"]              , Op1 opTanh     ),
+         (["asin", "arcsin"]    , Op1 opAsin     ),
+         (["acos", "arccos"]    , Op1 opAcos     ),
+         (["atan", "arctan"]    , Op1 opAtan     ),
+         (["asinh", "arcsinh"]  , Op1 opAsinh    ),
+         (["acosh", "arccosh"]  , Op1 opAcosh    ),
+         (["atanh", "arctanh"]  , Op1 opAtanh    ),
+         (["deg"]               , Op1 opDeg      ),
+         (["rad"]               , Op1 opRad      ),
+         (["not", "~"]          , Op1 opNot      ),
+         (["and", "&"]          , Op2 opAnd      ),
+         (["or", "|"]           , Op2 opOr       ),
+         (["nand", "~&"]        , Op2 opNand     ),
+         (["nor", "~|"]         , Op2 opNor      ),
+         (["xor"]               , Op2 opXor      ),
+         (["lshift", "<<"]      , Op2 opLShift   ),
+         (["rshift", ">>"]      , Op2 opRShift   ),
+         (["lt", "<"]           , Op2 opLt       ),
+         (["lte", "<="]         , Op2 opLte      ),
+         (["eq", "==", "="]     , Op2 opEq       ),
+         (["neq", "!="]         , Op2 opNeq      ),
+         (["gte", ">="]         , Op2 opGte      ),
+         (["gt", ">"]           , Op2 opGt       ),
+         (["rnd", "round"]      , Op1 opRnd      ),
+         (["floor"]             , Op1 opFloor    ),
+         (["ceil", "ceiling"]   , Op1 opCeil     ),
+         (["fl", "float"]       , Op1 opFloat    ),
+         (["++"]                , OpF opAdd      ),
+         (["**"]                , OpF opMultiply ),
+         (["&&"]                , OpF opAnd      ),
+         (["||"]                , OpF opOr       )]
+
+
+pCommandPrint :: Parser CommandPrint
+pCommandPrint = choice [pPrint, pStack, pView] <?> "command"
+  where
+    pPrint = choice [try withBase, default']
+      where
+        print    = ["print", "p"]
+        withBase = Print . Just <$> lexeme (recognise print *> parseBase)
+        default' = parseItemLex print (Print Nothing)
+
+    pStack = parseItemLex ["stack", "f"] Stack
+
+    pView  = choice [try spec, default']
+      where
+        view     = ["view", "v"]
+        spec     = withVar view (View . Just)
+        default' = parseItemLex view (View Nothing)
+
+
+parseBase :: Parser (Int, Bool)
+parseBase = choice [arb, spec]
+  where
+    arb = char '[' *> withCompl baseNum <* char ']'
+    baseNum = do
+      n <- L.decimal
+      if validBase n then pure n
+                     else customFailure (InvalidBaseE n)
+
+    spec = withCompl (choice [bin, oct, hex])
+    bin  = parseItem ["0b", "b"] 2
+    oct  = parseItem ["0o", "o"] 8
+    hex  = parseItem ["0x", "x"] 16
+
+    withCompl :: Parser Int -> Parser (Int, Bool)
+    withCompl pBase = (,) <$> pBase <*> compl
+      where compl = isJust <$> optional (char '~')
+
+
+-- Parser utils
+
+lexeme :: Parser a -> Parser a
+lexeme = L.lexeme (space1 <|> eof)
+
+parsePrefix :: Parser a -> Parser Bool
+parsePrefix = fmap isJust . optional
+
+recognise :: [Text] -> Parser ()
+recognise = void . choice . map string
+
+recogniseLex :: [Text] -> Parser ()
+recogniseLex = void . choice . map (try . lexeme . string)
+
+parseItem :: [Text] -> a -> Parser a
+parseItem ss x = pure x <* recognise ss
+
+parseItemLex :: [Text] -> a -> Parser a
+parseItemLex ss x = pure x <* recogniseLex ss
+
+parseFromMap :: [([Text], a)] -> Parser a
+parseFromMap = choice . map (uncurry parseItemLex)
+
+withArg :: Parser b -> [Text] -> (b -> a) -> Parser a
+withArg arg ss f = f <$> lexeme (recognise ss *> arg)
+
+positiveDecimal :: Parser Int
+positiveDecimal = do
+  n <- L.decimal
+  if n == 0 then customFailure ZeroIntArg
+            else pure n
+
+withInt :: [Text] -> (Int -> a) -> Parser a
+withInt = withArg positiveDecimal
+
+withIntOpt :: Int -> [Text] -> (Int -> a) -> Parser a
+withIntOpt default' = withArg (fromMaybe default' <$> optional positiveDecimal)
+
+withVar :: [Text] -> (String -> a) -> Parser a
+withVar ss f = lexeme (try (recognise ss *> char '[') *> (f <$> var) <* char ']')
+  where
+    var = some alphaNumChar <?> "variable name"
+

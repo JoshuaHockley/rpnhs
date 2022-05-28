@@ -1,93 +1,98 @@
+{-# LANGUAGE TupleSections #-}
+
 module Error where
 
 import Value
 
-import Control.Monad
+import Text.Megaparsec.Error (ParseErrorBundle, ShowErrorComponent, showErrorComponent, errorBundlePretty)
 import Data.Maybe
-import Data.Bifunctor
+import Data.Bifunctor (first)
+import Data.Text (Text)
+import qualified Data.Text as T
 
 
--- result type for rpnhs
-type Result a = Either Error a
+type Result = Either Error
 
-mkErr :: ErrDesc -> Result a
--- make a contextless erroroneous Result
-mkErr desc = Left $ Error desc Nothing
+data Error  = CalcE  CtxError
+            | ParseE ParseError
 
-toResult :: ErrDesc -> Maybe a -> Result a
--- convert a Maybe value to a Result, with a provided error description
-toResult e = maybe (mkErr e) return
+type CtxResult = Either CtxError
 
-assert :: Bool -> ErrDesc -> Result ()
--- assert a predicate holds for a value
--- if the predicate does not hold, fail with the provided error
-assert False e = mkErr e
-assert _     _ = return ()
-
-withContext :: EContext -> Result a -> Result a
--- inject a context into a Result
-withContext ctx = first inject
-  where inject (Error desc _) = Error desc (Just ctx)
-
-
--- error type
--- contains the description and the context it occured in (Nothing when not calculator related)
-data Error = Error ErrDesc (Maybe EContext)
+type CtxError = (CalcError, ErrorCtx)
 
 -- context of the calculator before an error
-type EContext = ([String], Stack)
+-- (position in program, stack)
+type ErrorCtx = (Int, Stack)
 
-data ErrDesc = EmptyStackE               -- empty stack for a command that needs at least 1 value
-             | PullE                     -- stack too small to perform the pull
-             | PushE                     -- stack too small to perform the push
-             | UndefinedVarE String      -- attempt to load an uninitialised variable
-             | PrintBaseNonIntegerE      -- tried to print a non-integer value in a custom base
-             | OperatorFailureE          -- operator failed (e.g. invalid types)
-             | NotEnoughOperandsE        -- not enough operands to apply an operator
+type CalcResult = Either CalcError
 
-             | InstrParseE String        -- failed to parse a string as an instruction
-             | FracParseE String         -- fraction literal contained an invalid componant e.g. 3/hi
-             | InvalidBaseSE String      -- base not an integer
-             | InvalidBaseE Int          -- invalid base to print/read an integer
-             | InvalidDigitE Int Char    -- invalid digit under a base
-             | EmptyBaseLiteralE         -- no digits given in a base literal
+data CalcError = EmptyStackE           -- empty stack for a command that needs at least 1 value
+               | PullE                 -- stack too small to perform the pull
+               | PushE                 -- stack too small to perform the push
+               | UndefinedVarE String  -- attempt to load an uninitialised variable
+               | PrintBaseNonIntegerE  -- tried to print a non-integer value in a custom base
+               | OperatorFailureE      -- operator failed (e.g. invalid types)
+               | NotEnoughOperandsE    -- not enough operands to apply an operator
 
-             | UndefinedLabelE String    -- attempt to jump to an undefined label
-             | DuplicateLabelE String    -- label defined multiple times
+type ParseResult = Either ParseError
 
-             | UserErrorE                -- user error triggered by the ERR command
+type ParseError = ParseErrorBundle Text LogicParseError
+
+type LogicParseResult = Either LogicParseError
+
+data LogicParseError = ZeroIntArg              -- 0 as an integer argument to a command
+                     | InvalidBaseE Int        -- invalid base to print/read an integer
+                     | InvalidDigitE Int Char  -- invalid digit under a base
+  deriving (Eq, Show, Ord)
 
 
-showE :: Bool -> Bool -> Error -> [String]
+-- utils
+
+mapErr :: (e -> e') -> Either e a -> Either e' a
+mapErr = first
+
+toResult :: e -> Maybe a -> Either e a
+-- convert a Maybe value to a Result, with a provided error description
+toResult e = maybe (Left e) return
+
+assert :: Bool -> e -> Either e ()
+-- assert a predicate holds for a value
+-- if the predicate does not hold, fail with the provided error
+assert False e = Left e
+assert _     _ = return ()
+
+withContext :: ErrorCtx -> CalcResult a -> CtxResult a
+withContext ctx = first (, ctx)
+
+
+-- display
+
+showE :: Bool -> Bool -> Text -> Error -> [String]
 -- user facing output of an error
 -- context printing is based on settings
 -- print instructions -> print stack -> ...
-showE printInstr printStack (Error desc (Just (instr, stack)))
-  = show desc
-    :  [" at     " ++ unwords instr                    | printInstr]
-    ++ [" with   " ++ fromMaybe "[]" (showStack stack) | printStack]
-showE _ _ (Error desc _)
-  = [show desc]
+showE printProg printStack prog (CalcE (err, (pos, stack)))
+  = ("error: " ++ show err)
+    :  (if printProg
+           then [" program   " ++ T.unpack prog,
+                 "           " ++ replicate pos ' ' ++ "^"]
+           else [])
+    ++ [" stack     " ++ fromMaybe "[]" (showStack stack) | printStack]
+    ++ [""]
+showE _ _ _ (ParseE err)
+  = lines (errorBundlePretty err) ++ [""]
 
--- user facing error description
-instance Show ErrDesc where
-  show EmptyStackE          = "error: empty stack"
-  show PullE                = "error: stack was too small to perform the pull"
-  show PushE                = "error: stack was too small to perform the push"
-  show (UndefinedVarE s)    = "error: variable is undefined (" ++ s ++ ")"
-  show PrintBaseNonIntegerE = "error: cannot print non-integer values in custom bases"
-  show OperatorFailureE     = "error: operator failed"
-  show NotEnoughOperandsE   = "error: not enough operands to apply the operator"
+instance Show CalcError where
+  show EmptyStackE          = "empty stack"
+  show PullE                = "stack was too small to perform the pull"
+  show PushE                = "stack was too small to perform the push"
+  show (UndefinedVarE s)    = "variable is undefined (" ++ s ++ ")"
+  show PrintBaseNonIntegerE = "cannot print non-integer values in bases other than decimal"
+  show OperatorFailureE     = "operator failed"
+  show NotEnoughOperandsE   = "not enough operands to apply the operator"
 
-  show (InstrParseE s)      = "parse error: unrecognised instruction (" ++ s ++ ")"
-  show (FracParseE s)       = "parse error: invalid fraction componant (" ++ s ++ ")"
-  show (InvalidBaseSE s)    = "base error: invalid base (" ++ ")"
-  show (InvalidBaseE i)     = "base error: invalid base (" ++ show i ++ ")"
-  show (InvalidDigitE b c)  = "base error: " ++ c : " is an invalid digit under base " ++ show b
-  show EmptyBaseLiteralE    = "base error: empty base literal"
-
-  show (UndefinedLabelE l)  = "jump error: label " ++ l ++ " is undefined"
-  show (DuplicateLabelE l)  = "label error: label " ++ l ++ " is defined multiple times"
-
-  show UserErrorE           = "user error"
+instance ShowErrorComponent LogicParseError where
+  showErrorComponent ZeroIntArg          = "integer argument cannot be 0"
+  showErrorComponent (InvalidBaseE n)    = "invalid base `" ++ show n ++ "`"
+  showErrorComponent (InvalidDigitE n c) = "invalid digit `" ++ [c] ++ "` in base " ++ show n
 

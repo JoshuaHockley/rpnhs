@@ -11,6 +11,7 @@ import System.Console.Haskeline
 import Control.Monad (mfilter)
 import Data.List (stripPrefix, isPrefixOf)
 import Data.Maybe
+import qualified Data.Text as T
 import Text.Read (readMaybe)
 
 
@@ -21,7 +22,7 @@ type History = [State]
 
 
 runInteractive :: Macros -> String -> Bool -> Bool -> IO ()
-runInteractive ms prompt ePrintInstr ePrintStack
+runInteractive ms prompt ePrintProg ePrintStack
   = runInputT settings $ run (ms, []) emptyState
   where
     settings = Settings { complete = noCompletion,
@@ -72,10 +73,9 @@ runInteractive ms prompt ePrintInstr ePrintStack
           Left  e         -> putoute e        >> return (s,      h)
       where
         res = do
-          is <- processLine ms (words l)
-          rpn s is
-        putout       = (outputStr " " >>) . outputStrLn
-        putoute      = mapM_ outputStrLn . showE'
-
-    showE' = showE ePrintInstr ePrintStack
+          is <- mapErr ParseE $ processLine ms l
+          mapErr CalcE $ rpn s is
+        putout  = (outputStr " " >>) . outputStrLn
+        putoute = mapM_ outputStrLn . showE'
+        showE'  = showE ePrintProg ePrintStack (T.pack l)
 

@@ -7,17 +7,20 @@ import Error
 
 import System.IO
 import System.Exit
+import qualified Data.Text as T
 
 
 runInline :: Macros -> Bool -> Bool -> Bool -> [String] -> IO ()
-runInline ms autoPrint ePrintInstr ePrintStack args
+runInline ms autoPrint ePrintProg ePrintStack args
   = case res of
       Right ((s, _), out) -> success s out >> exitSuccess
       Left  e             -> failure e     >> exitFailure
   where
+    l = unwords args
+
     res = do
-      is <- processLine ms (concatMap words args)
-      rpn emptyState is
+      is <- mapErr ParseE $ processLine ms l
+      mapErr CalcE $ rpn emptyState is
 
     success (v : _) []
       | autoPrint = print v
@@ -25,5 +28,5 @@ runInline ms autoPrint ePrintInstr ePrintStack args
 
     failure = mapM_ (hPutStrLn stderr) . showE'
 
-    showE' = showE ePrintInstr ePrintStack
+    showE' = showE ePrintProg ePrintStack (T.pack l)
 

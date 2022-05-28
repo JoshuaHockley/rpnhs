@@ -6,19 +6,15 @@ import Rpn (Instr, Instructions)
 import Parser
 import Macros
 import Error
-import Util (stripBrackets)
 
 import Control.Monad
 import Data.Bifunctor
+import qualified Data.Text as T
 import qualified Data.Map as M
 
 
-processLine :: Macros -> [String] -> Result Instructions
+processLine :: Macros -> String -> ParseResult Instructions
 -- process a line of instructions in preperations for being run
--- expand macros -> parse tokens -> set up jumptable
-processLine ms l = do
-  let l' = expandMacros ms l
-  tokens <- mapM parseInstr l'
-  let is = zip tokens l'
-  return is
+-- expand macros -> parse instructions
+processLine ms = parseInstructions . T.pack . expandMacros ms
 

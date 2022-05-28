@@ -22,13 +22,14 @@ addMacro :: Macros -> Macro -> Macros
 addMacro ms (m, ss) = M.insert m ss ms
 
 
-expandMacros :: Macros -> [String] -> [String]
+expandMacros :: Macros -> String -> String
 -- expand any occurrences of macros in the strings
--- expansion is performed recursivly, but with the expanded macro 'unavailable'
-expandMacros ms = concatMap expand
+-- expansion is performed recursively, but with the expanded macro 'unavailable'
+expandMacros ms = unwords . expandMacros' ms . words
   where
+    expandMacros' ms = concatMap expand
     expand s = case M.lookup s ms of
-                 Just ss -> expandMacros ms' ss
+                 Just ss -> expandMacros' ms' ss
                    where ms' = M.delete s ms
                  _       -> [s]
 

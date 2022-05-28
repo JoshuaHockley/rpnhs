@@ -20,10 +20,15 @@ type State = (Stack, Vars)
 emptyState = ([], M.empty) :: State
 
 
+-- instructions for the calculator to execute
+type Instructions = [Instruction]
+
+-- an instruction and it's position in the source
+type Instruction = (Instr, Int)
+
 -- an instruction
 data Instr = InstrPure InstrPure
            | CommandPrint CommandPrint
-           | Err
 
 -- an instruction that has a pure effect on the state
 data InstrPure = Value Value
@@ -39,33 +44,31 @@ data Command = Pop Int        -- remove the top n values from the stack
              | Store String   -- pop the top of the stack and store it in a variable
              | Load String    -- load a variable onto the stack
              | Depth          -- push the depth of the stack
+             deriving Show
 
 data Operator = Op1 Operator1  -- unary operator
               | Op2 Operator2  -- binary operator
               | OpF Operator2  -- folding operator
 
--- a command that produces an string to print
+-- a command that produces output
 data CommandPrint = Print (Maybe (Int, Bool))  -- print the value at the top of the stack
-                                               -- optional base desc (base, use radix complement)
+                                               --  optional base desc (base, use radix complement)
                   | Stack                      -- print the entire stack
-                  | View String                -- print the value of a variable
-                  | ViewAll                    -- print all variables with their values
+                  | View (Maybe String)        -- print the value of a variable,
+                                               --  or all variables and their values
+                  deriving Show
 
 -- mapping of identifiers to Values
 type Vars = M.Map String Value
 
--- instructions for the calculator to execute
--- the String is the source of the Token, used to provide context to errors
-type Instructions = [(Instr, String)]
 
-
-rpn :: State -> Instructions -> Result (State, [String])
+rpn :: State -> Instructions -> CtxResult (State, [String])
 -- run the calulator on a list of instructions
 -- returns the final state and a list of output to print
 rpn = rpn'
   where
-    rpn' :: State -> Instructions -> Result (State, [String])
-    rpn' st@(s, _) is'@((i, _) : is)
+    rpn' :: State -> Instructions -> CtxResult (State, [String])
+    rpn' st@(s, _) is'@((i, pos) : is)
       = case i of
           -- execute a pure instruction on the state
           InstrPure i -> do
@@ -78,64 +81,59 @@ rpn = rpn'
             (st', out) <- rpn' st is
             return (st', l ++ out)
 
-          -- ERR
-          Err -> withContext' $ mkErr UserErrorE
-
       where
-        withContext' :: Result a -> Result a
-        -- inject the current context into an error
-        withContext' = withContext (map snd is', s)
+        withContext' = withContext (pos, s)
 
-        checkCond :: State -> Result Bool
+        checkCond :: State -> CtxResult Bool
         checkCond (v : _, _) = return . not $ isZero v
-        checkCond _          = withContext' $ mkErr EmptyStackE
+        checkCond _          = withContext' $ Left EmptyStackE
 
     rpn' st _ = return (st, [])
 
 
-processInstrPure :: InstrPure -> State -> Result State
+processInstrPure :: InstrPure -> State -> CalcResult State
 -- process a pure instruction with the state
 processInstrPure (Value v)     (s, vars) = return (v : s, vars)
 processInstrPure (Command c)   st        = runCmd c st
 processInstrPure (Operator op) (s, vars) = (, vars) <$> processOp op s
 
 
-runCmd :: Command -> State -> Result State
+runCmd :: Command -> State -> CalcResult State
 -- run a command
 runCmd (Pop n)      (s, vars)     = return (drop n s, vars)
 runCmd Clear        (s, vars)     = return ([], vars)
 runCmd (Dup n)      (v : s, vars) = return (replicate (n + 1) v ++ s, vars)
-runCmd (Dup _)      _             = mkErr EmptyStackE
+runCmd (Dup _)      _             = Left EmptyStackE
 runCmd (Pull n)     (s, vars)     = (, vars) <$> toResult PullE (pullElem (n - 1) s)
 runCmd (Push n)     (s, vars)     = (, vars) <$> toResult PushE (pushElem n       s)
 runCmd Depth        (s, vars)     = return (I d : s, vars) where d = toInteger (length s)
 runCmd (Store iden) (v : s, vars) = return (s, setVar iden v vars)
-runCmd (Store _)    _             = mkErr EmptyStackE
+runCmd (Store _)    _             = Left EmptyStackE
 runCmd (Load iden)  (s, vars)     = (, vars) . (: s) <$> getVar iden vars
 
 
-processOp :: Operator -> Stack -> Result Stack
+processOp :: Operator -> Stack -> CalcResult Stack
 -- process an operator on the stack
 processOp (Op1 op) (v : s)      = (: s)  <$> toResult OperatorFailureE (op v)
 processOp (Op2 op) (v : v' : s) = (: s)  <$> toResult OperatorFailureE (op v' v)
 processOp (OpF op) (v : v' : s) = return <$> toResult OperatorFailureE (foldM op v (v' : s))
-processOp _        _            = mkErr NotEnoughOperandsE
+processOp _        _            = Left NotEnoughOperandsE
 
 
-runCmdPrint :: CommandPrint -> State -> Result [String]
+runCmdPrint :: CommandPrint -> State -> CalcResult [String]
 -- run an print command from the state
 runCmdPrint (Print desc) (v : _, _)
   = case desc of
       Just (base, compl) -> return . showB compl base <$> toResult PrintBaseNonIntegerE (asI v)
       _                  -> return . return $ show v
-runCmdPrint (Print _)   _         = mkErr EmptyStackE
-runCmdPrint Stack       (s, _)    = return . maybeToList $ showStack s
-runCmdPrint (View iden) (_, vars) = return . show <$> getVar iden vars
-runCmdPrint ViewAll     (_, vars) = return $ showVars vars
+runCmdPrint (Print _)          _         = Left EmptyStackE
+runCmdPrint Stack              (s, _)    = return . maybeToList $ showStack s
+runCmdPrint (View (Just iden)) (_, vars) = return . show <$> getVar iden vars
+runCmdPrint (View Nothing)     (_, vars) = return $ showVars vars
 
 
 -- vars
-getVar :: String -> Vars -> Result Value
+getVar :: String -> Vars -> CalcResult Value
 getVar iden = toResult (UndefinedVarE iden) . M.lookup iden
 
 setVar :: String -> Value -> Vars -> Vars

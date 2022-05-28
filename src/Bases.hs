@@ -18,18 +18,18 @@ maxBase = length digits
 validBase b = b >= 2 && b <= maxBase
 
 
-parseB :: Bool -> Int -> String -> Result Integer
+parseB :: Bool -> Int -> String -> LogicParseResult Integer
 -- parse an integer representation in an arbitrary base
+-- pre: string is non-empty
 parseB compl b s = (if compl then fromRadixComp b (length s) else id)
                    .   compose b
                    <$> digitValues b s
   where
-    digitValues :: Int -> String -> Result [Int]
-    digitValues _ "" = mkErr EmptyBaseLiteralE
+    digitValues :: Int -> String -> LogicParseResult [Int]
     digitValues b s  = mapM digitValue s
       where
-        digitValue :: Char -> Result Int
-        digitValue c = toResult (InvalidDigitE b c) $ mfilter (< b) (elemIndex c (elems digits))
+        digitValue :: Char -> LogicParseResult Int
+        digitValue c = maybe (Left (InvalidDigitE b c)) pure $ mfilter (< b) (elemIndex c (elems digits))
 
 
 showB :: Bool -> Int -> Integer -> String
