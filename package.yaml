@@ -5,6 +5,7 @@ dependencies:
 - array
 - containers
 - text
+- mtl
 - errors
 - megaparsec
 - haskeline

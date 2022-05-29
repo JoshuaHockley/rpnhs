@@ -2,80 +2,118 @@
 
 module Interactive (runInteractive) where
 
-import Rpn (rpn, State, emptyState)
-import LineProcessor
+import Rpn (rpn, CalcState, emptyState)
+import RunLine (runLine)
 import Macros (Macros, parseMacro, addMacro)
 import Error
 
-import System.Console.Haskeline
 import Control.Monad (mfilter)
+import Control.Monad.State
+import Control.Monad.Except
+import System.Console.Haskeline
 import Data.List (stripPrefix, isPrefixOf)
 import Data.Maybe
 import qualified Data.Text as T
 import Text.Read (readMaybe)
 
 
+-- monad stack for the interactive calculator
+type ICalc = StateT ICalcState (InputT IO)
+
+-- the state of the interactive calculator
+type ICalcState = (CalcState, Context)
+
 -- the context of the interactive mode (separate from the calculator)
 type Context = (Macros, History)
 -- history of calculator states
-type History = [State]
+type History = [CalcState]
 
 
 runInteractive :: Macros -> String -> Bool -> Bool -> IO ()
 runInteractive ms prompt ePrintProg ePrintStack
-  = runInputT settings $ run (ms, []) emptyState
+  = void
+    . runInputT settings
+    . flip runStateT initialState
+    $ run' prompt ePrintProg ePrintStack
   where
     settings = Settings { complete = noCompletion,
                           historyFile = Nothing,
                           autoAddHistory = True }
+    initialState = (emptyState, (ms, [])) :: ICalcState
 
 
-    run :: Context -> State -> InputT IO ()
-    run ctx s = do
-      minput <- getInputLine prompt
+run' :: String -> Bool -> Bool -> ICalc ()
+run' prompt ePrintProg ePrintStack = run
+  where
+
+    run :: ICalc ()
+    run = do
+      minput <- lift $ getInputLine prompt
       case minput of
-        Just input -> handleInput ctx s input
-        _          -> run ctx s
+        Just input -> case input of
+          -- quit
+          ":q" -> return ()
+          "q"  -> return ()
+          -- execute input
+          _    -> handleInput input >> run
+        -- ignore empty line
+        _ -> run
 
 
-    handleInput :: Context -> State -> String -> InputT IO ()
-    -- exiting
-    handleInput _ _ "q"  = return ()
-    handleInput _ _ ":q" = return ()
-    -- undo
-    handleInput (ms, h) s (stripPrefix ":u" -> Just n)
-      = run (ms, h') s'
+    handleInput :: String -> ICalc ()
+    handleInput s = case stripPrefix ":" s of
+      Just c -> handleMetaCommand c
+      _      -> runCalc s
+
+
+    handleMetaCommand s = case s of
+      -- undo
+      (stripPrefix "u" -> Just s) ->
+        case mn of
+          Just n -> undo n
+          _      -> lift $ outputStrLn "error: invalid undo level"
+        where
+          mn | null s    = Just 1  -- interpret `:u` as `:u1`
+             | otherwise = mfilter (>= 1) (readMaybe s) :: Maybe Int
+
+      -- def
+      (stripPrefix "def" -> Just s) ->
+        case parseMacro s of
+          Just m -> do
+            (calc, (ms, h)) <- get
+            let ms' = addMacro ms m
+            put (calc, (ms', h))
+          _ -> lift $ outputStrLn "error: failed to parse macro definition"
+
+
+    runCalc :: String -> ICalc ()
+    -- run the calculator on the input
+    runCalc l = do
+      (calc, (ms, h)) <- get
+      let res = runExcept $ runStateT (runLine ms l) calc
+      case res of
+        Right (out, calc') -> do
+          -- print output
+          lift $ putout out
+          -- update calc state and history
+          put (calc', (ms, calc : h))
+        Left e ->
+          -- print error, do not change state
+          lift $ putoute e
       where
-        (s', h') = maybe (s, h) undo n'
-        n'       = if null n then Just 1 else mfilter (>= 1) (readMaybe n)
-        undo :: Int -> (State, History)
-        undo n = case drop (n - 1) h of
-                   (s' : h') -> (s', h')
-                   _         -> (emptyState, [])
-    -- macro definition
-    handleInput (ms, h) s (stripPrefix ":def " -> Just m)
-      = case parseMacro m of
-          Just m' -> run (ms', h) s
-            where ms' = addMacro ms m'
-          _ -> outputStrLn "error: failed to parse macro" >> run (ms, h) s
-    -- run the calculator on the line
-    handleInput (ms, h) s input = do
-      (s', h') <- runLine (ms, h) s input
-      run (ms, h') s'
-
-
-    runLine :: Context -> State -> String -> InputT IO (State, History)
-    -- run the calculator on a line of input
-    -- return the next state and updated history (both unchanged on error)
-    runLine (ms, h) s l
-      = case res of
-          Right (s', out) -> mapM_ putout out >> return (s', s : h)
-          Left  e         -> putoute e        >> return (s,      h)
-      where
-        res = do
-          is <- mapErr ParseE $ processLine ms l
-          mapErr CalcE $ rpn s is
-        putout  = (outputStr " " >>) . outputStrLn
+        putout  = mapM_ ((outputStr " " >>) . outputStrLn)
         putoute = mapM_ outputStrLn . showE'
-        showE'  = showE ePrintProg ePrintStack (T.pack l)
+          where
+            showE' = showE ePrintProg ePrintStack (T.pack l)
+
+
+undo :: Int -> ICalc ()
+-- pre: n >= 1
+undo n = do
+  (calc, (ms, h)) <- get
+  put $ case drop (n - 1) h of
+    -- found old state - update calc state and history
+    (calc' : h') -> (calc',      (ms, h'))
+    -- old state does not exist - fallback to initial state and clear history
+    _            -> (emptyState, (ms, []))
 

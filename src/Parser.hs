@@ -19,11 +19,12 @@ import Data.Ratio ((%))
 import Data.Maybe (isJust, fromMaybe)
 import Data.Tuple (swap)
 import Control.Monad (void)
+import Control.Monad.Except
 
 
-parseInstructions :: Text -> ParseResult Instructions
+parseInstructions :: Text -> Except Error.ParseError Instructions
 -- parse a program source into a list of instructions
-parseInstructions = parse (pInstructions <* eof) ""
+parseInstructions = liftEither . parse (pInstructions <* eof) ""
 
 
 type Parser = Parsec LogicParseError Text
@@ -36,10 +37,10 @@ pInstructions = space *> many pInstruction
 
 
 pInstr :: Parser Instr
-pInstr = choice [InstrPure . Command  <$> pCommand,
-                 InstrPure . Operator <$> pOperator,
-                 CommandPrint         <$> pCommandPrint,
-                 InstrPure . Value    <$> pValue]
+pInstr = choice [Command      <$> pCommand,
+                 Operator     <$> pOperator,
+                 CommandPrint <$> pCommandPrint,
+                 Value        <$> pValue]
 
 
 pValue :: Parser Value
@@ -74,20 +75,6 @@ pValue = signedVal (choice [pLit, pConst] <?> "value") <?> "value"
     signedVal pVal = do
       neg <- parsePrefix (char '-')
       (if neg then negateVal else id) <$> pVal
-
-
-pCommand :: Parser Command
-pCommand = choice [parseFromMap m, pPop, pDup, pPull, pPush, pStore, pLoad] <?> "command"
-  where
-    m = [(["clear", "c"] , Clear  ),
-         (["swap" , "s"] , Push 1 ),
-         (["depth", "z"] , Depth  )]
-    pPop   = withIntOpt 1 ["pop"  , "r" ] Pop
-    pDup   = withIntOpt 1 ["dup"  , "d" ] Dup
-    pPull  = withInt      ["pull" , "pl"] Pull
-    pPush  = withInt      ["push" , "ps"] Push
-    pStore = withVar      ["store", "s" ] Store
-    pLoad  = withVar      ["load" , "l" ] Load
 
 
 pOperator :: Parser Operator
@@ -142,11 +129,21 @@ pOperator = parseFromMap m <?> "operator"
          (["rnd", "round"]      , Op1 opRnd      ),
          (["floor"]             , Op1 opFloor    ),
          (["ceil", "ceiling"]   , Op1 opCeil     ),
-         (["fl", "float"]       , Op1 opFloat    ),
-         (["++"]                , OpF opAdd      ),
-         (["**"]                , OpF opMultiply ),
-         (["&&"]                , OpF opAnd      ),
-         (["||"]                , OpF opOr       )]
+         (["fl", "float"]       , Op1 opFloat    )]
+
+
+pCommand :: Parser Command
+pCommand = choice [parseFromMap m, pPop, pDup, pPull, pPush, pStore, pLoad] <?> "command"
+  where
+    m = [(["clear", "c"] , Clear  ),
+         (["swap" , "s"] , Push 1 ),
+         (["depth", "z"] , Depth  )]
+    pPop   = withIntOpt 1 ["pop"  , "r" ] Pop
+    pDup   = withIntOpt 1 ["dup"  , "d" ] Dup
+    pPull  = withInt      ["pull" , "pl"] Pull
+    pPush  = withInt      ["push" , "ps"] Push
+    pStore = withVar      ["store", "s" ] Store
+    pLoad  = withVar      ["load" , "l" ] Load
 
 
 pCommandPrint :: Parser CommandPrint

@@ -1,5 +1,3 @@
-{-# LANGUAGE NoMonomorphismRestriction #-}
-
 module Util where
 
 import Data.Bifunctor (second)
@@ -7,6 +5,7 @@ import Data.Bifunctor (second)
 
 (.:) = (.) . (.)
 infixl 7 .:
+
 
 removeAt :: Int -> [a] -> Maybe (a, [a])
 -- remove the element at index n from a list

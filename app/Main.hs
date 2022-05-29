@@ -34,6 +34,6 @@ start :: Args -> IO ()
 start (Args prompt autoPrint ePrintInstr ePrintStack macroFile inlineIn) = do
   ms <- getSavedMacros macroFile
   if null inlineIn
-     then runInteractive ms prompt ePrintInstr ePrintStack
-     else runInline ms autoPrint ePrintInstr ePrintStack inlineIn
+     then runInteractive ms prompt    ePrintInstr ePrintStack
+     else runInline      ms autoPrint ePrintInstr ePrintStack (unwords inlineIn)
 
