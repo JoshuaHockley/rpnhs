@@ -1,4 +1,3 @@
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Parser (parseInstructions) where
@@ -18,16 +17,19 @@ import qualified Data.Text as T
 import Data.Ratio ((%))
 import Data.Maybe (isJust, fromMaybe)
 import Data.Tuple (swap)
+import qualified Data.Map as M (lookup)
 import Control.Monad (void)
 import Control.Monad.Except
+import Control.Monad.Reader
 
 
-parseInstructions :: Text -> Except Error.ParseError Instructions
+parseInstructions :: Defs -> Text -> Except Error.ParseError Instructions
 -- parse a program source into a list of instructions
-parseInstructions = liftEither . parse (pInstructions <* eof) ""
+parseInstructions defs = liftEither . parse (pInstructions' <* eof) ""
+  where pInstructions' = runReaderT pInstructions defs
 
 
-type Parser = Parsec LogicParseError Text
+type Parser = ReaderT Defs (Parsec LogicParseError Text)
 
 
 pInstructions :: Parser Instructions
@@ -37,10 +39,11 @@ pInstructions = space *> many pInstruction
 
 
 pInstr :: Parser Instr
-pInstr = choice [Command      <$> pCommand,
-                 Operator     <$> pOperator,
+pInstr = choice [Operator     <$> pOperator,
+                 Command      <$> pCommand,
                  CommandPrint <$> pCommandPrint,
-                 Value        <$> pValue]
+                 Value        <$> pValue,
+                 Subroutine   <$> pSubroutineCall]
 
 
 pValue :: Parser Value
@@ -80,7 +83,7 @@ pValue = signedVal (choice [pLit, pConst] <?> "value") <?> "value"
 pOperator :: Parser Operator
 pOperator = parseFromMap m <?> "operator"
   where
-    m = [(["abs"]               , Op1 opAbs      ),
+    m = [(["abs", "||"]         , Op1 opAbs      ),
          (["negate", "neg"]     , Op1 opNegate   ),
          (["recip"]             , Op1 opRecip    ),
          (["sqrt", "root"]      , Op1 opSqrt     ),
@@ -164,6 +167,15 @@ pCommandPrint = choice [pPrint, pStack, pView] <?> "command"
         default' = parseItemLex view (View Nothing)
 
 
+pSubroutineCall :: Parser Instructions
+pSubroutineCall = label "subroutine" . try $ do
+  defs <- ask
+  s <- lexeme pWord
+  maybe (fail "subroutine not found") return $ M.lookup (T.unpack s) defs
+  where
+    pWord = takeWhile1P Nothing (\c -> c /= ' ' && c /= ')')
+
+
 parseBase :: Parser (Int, Bool)
 parseBase = choice [arb, spec]
   where
@@ -186,7 +198,7 @@ parseBase = choice [arb, spec]
 -- Parser utils
 
 lexeme :: Parser a -> Parser a
-lexeme = L.lexeme (space1 <|> eof)
+lexeme = L.lexeme (void (lookAhead (char ')')) <|> space1 <|> eof)
 
 parsePrefix :: Parser a -> Parser Bool
 parsePrefix = fmap isJust . optional
@@ -212,7 +224,7 @@ withArg arg ss f = f <$> lexeme (recognise ss *> arg)
 positiveDecimal :: Parser Int
 positiveDecimal = do
   n <- L.decimal
-  if n == 0 then customFailure ZeroIntArg
+  if n == 0 then customFailure ZeroIntArgE
             else pure n
 
 withInt :: [Text] -> (Int -> a) -> Parser a

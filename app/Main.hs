@@ -2,7 +2,7 @@ module Main where
 
 import Inline
 import Interactive
-import Macros (getSavedMacros)
+import Subroutine (getSavedDefs)
 
 import Options.Applicative
 
@@ -18,7 +18,7 @@ main = start =<< execParser (info (args <**> helper) desc)
            <*> switch (long "auto-print" <> short 'p' <> help "Auto print if no output is produced from inline mode")
            <*> switch (long "eprint-prog" <> short 'i' <> help "Print the program marking the current instruction when an error occurs")
            <*> switch (long "eprint-stack" <> short 's' <> help "Print the stack when an error occurs")
-           <*> optional (strOption (long "macro-file" <> short 'm' <> metavar "FILE" <> help "Load a given macro file on startup"))
+           <*> optional (strOption (long "def-file" <> short 'd' <> metavar "FILE" <> help "Load a given definition file on startup"))
            <*> many (strArgument mempty)
 
 data Args = Args {
@@ -31,9 +31,9 @@ data Args = Args {
 }
 
 start :: Args -> IO ()
-start (Args prompt autoPrint ePrintInstr ePrintStack macroFile inlineIn) = do
-  ms <- getSavedMacros macroFile
+start (Args prompt autoPrint ePrintInstr ePrintStack defFile inlineIn) = do
+  defs <- getSavedDefs defFile
   if null inlineIn
-     then runInteractive ms prompt    ePrintInstr ePrintStack
-     else runInline      ms autoPrint ePrintInstr ePrintStack (unwords inlineIn)
+     then runInteractive defs prompt    ePrintInstr ePrintStack
+     else runInline      defs autoPrint ePrintInstr ePrintStack (unwords inlineIn)
 

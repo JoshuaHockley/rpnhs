@@ -2,6 +2,7 @@ name: rpnhs
 
 dependencies:
 - base >= 4.7 && < 5
+- extra
 - array
 - containers
 - text

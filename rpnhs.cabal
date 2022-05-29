@@ -16,11 +16,11 @@ library
       Error
       Inline
       Interactive
-      Macros
       Operator
       Parser
       Rpn
       RunLine
+      Subroutine
       Util
       Value
   other-modules:
@@ -32,6 +32,7 @@ library
     , base >=4.7 && <5
     , containers
     , errors
+    , extra
     , haskeline
     , megaparsec
     , mtl
@@ -51,6 +52,7 @@ executable rpnhs
     , base >=4.7 && <5
     , containers
     , errors
+    , extra
     , haskeline
     , megaparsec
     , mtl
@@ -72,6 +74,7 @@ test-suite rpnhs-test
     , base >=4.7 && <5
     , containers
     , errors
+    , extra
     , haskeline
     , megaparsec
     , mtl

@@ -1,8 +1,7 @@
 module RunLine where
 
-import Rpn (rpn, Calc, CalcState, emptyState)
+import Rpn (rpn, Calc, CalcState, emptyState, Defs)
 import Parser
-import Macros
 import Error
 import Util ((.:))
 
@@ -12,20 +11,19 @@ import Data.Text (Text)
 import qualified Data.Text as T
 
 
-runLine :: Macros -> String -> Calc Error CalcState [String]
+runLine :: Defs -> String -> Calc Error CalcState [String]
 -- run a line in the calculator
-runLine ms l = do
-  -- expand macros
-  let l' = T.pack $ expandMacros ms l
+runLine defs l = do
+  let l' = T.pack l
 
   -- parse line
-  is <- lift . withExcept ParseE $ parseInstructions l'
+  is <- lift . withExcept ParseE $ parseInstructions defs l'
 
   -- run calc with state
   mapStateT (withExcept CalcE) $ rpn is
 
 
-runSingle :: Macros -> String -> Except Error ([String], CalcState)
+runSingle :: Defs -> String -> Except Error ([String], CalcState)
 -- run a single line with the empty state
 runSingle = flip runStateT emptyState .: runLine
 

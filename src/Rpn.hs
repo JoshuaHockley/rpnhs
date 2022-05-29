@@ -29,6 +29,8 @@ data Instr = Value Value
            | Command Command
            | CommandPrint CommandPrint
 
+           | Subroutine Instructions
+
 -- a command that modifies the state
 data Command = Pop Int        -- remove the top n values from the stack
              | Clear          -- clear all values from the stack
@@ -65,10 +67,22 @@ emptyState = ([], M.empty) :: CalcState
 -- mapping of identifiers to Values
 type Vars = M.Map String Value
 
+-- subroutine definitions
+type Defs = M.Map String Instructions
+
 
 rpn :: Instructions -> Calc CtxError CalcState [String]
 -- run the calulator on a list of instructions
 rpn = fmap concat . mapM runInstr
+
+
+rpnStackOnly :: Instructions -> Calc CtxError CalcState [String]
+-- run the calulator on a list of instructions, but only commiting changes to the stack
+rpnStackOnly is = do
+  calc@(_, vars) <- get
+  (out, (s, _)) <- lift $ runStateT (rpn is) calc
+  put (s, vars)
+  return out
 
 
 runInstr :: Instruction -> Calc CtxError CalcState [String]
@@ -78,12 +92,19 @@ runInstr (i, pos) = do
   let ctx = mapStateT . withExcept $ withContext (pos, s)
          :: Calc CalcError s a -> Calc CtxError s a
 
-  -- run instruction and inject context into error
-  ctx $ case i of
-    Value v        -> noOutput . onStack $ push v
-    Operator op    -> noOutput . onStack $ runOp op
-    Command c      -> noOutput           $ runCmd c
-    CommandPrint c -> runCmdPrint c
+  -- run instruction and adjust context
+  case i of
+    -- base instructions (introduce context)
+    Value v        -> ctx . noOutput . onStack $ push v
+    Operator op    -> ctx . noOutput . onStack $ runOp op
+    Command c      -> ctx . noOutput           $ runCmd c
+    CommandPrint c -> ctx                      $ runCmdPrint c
+
+    -- subroutine (set error and update context)
+    --   only persist changes to the stack
+    Subroutine is -> ctx . mapStateT (withExcept (const SubroutineFailureE))
+                     $ rpnStackOnly is
+
   where
     noOutput = fmap (const [])
 
