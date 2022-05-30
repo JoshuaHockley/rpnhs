@@ -172,10 +172,10 @@ pCommandPrint = choice [pPrint, pStack, pView] <?> "command"
 
 
 pSubroutineCall :: Parser Instructions
-pSubroutineCall = label "subroutine" . try $ do
+pSubroutineCall = hidden . try $ do
   defs <- ask
   s <- lexeme pWord
-  maybe (fail "subroutine not found") return $ M.lookup (T.unpack s) defs
+  maybe empty return $ M.lookup (T.unpack s) defs
   where
     pWord = takeWhile1P Nothing (\c -> c /= ' ' && c /= ')')
 
