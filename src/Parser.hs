@@ -25,25 +25,29 @@ import Control.Monad.Reader
 
 parseInstructions :: Defs -> Text -> Except Error.ParseError Instructions
 -- parse a program source into a list of instructions
-parseInstructions defs = liftEither . parse (pInstructions' <* eof) ""
-  where pInstructions' = runReaderT pInstructions defs
+parseInstructions defs = liftEither . parse pInstructions' ""
+  where pInstructions' = space *> runReaderT pInstructions defs <* eof
 
 
 type Parser = ReaderT Defs (Parsec LogicParseError Text)
 
 
 pInstructions :: Parser Instructions
-pInstructions = space *> many pInstruction
+pInstructions = many pInstruction
   where
     pInstruction = swap .: (,) <$> getOffset <*> pInstr
 
 
 pInstr :: Parser Instr
-pInstr = choice [Operator     <$> pOperator,
-                 Command      <$> pCommand,
-                 CommandPrint <$> pCommandPrint,
-                 Value        <$> pValue,
-                 Subroutine   <$> pSubroutineCall]
+pInstr = choice [Subroutine    <$> pSubroutineCall,
+                 Operator      <$> pOperator,
+                 Command       <$> pCommand,
+                 CommandPrint  <$> pCommandPrint,
+                 Value         <$> pValue,
+                 uncurry If    <$> pIf,
+                 uncurry While <$> pWhile,
+                 Map           <$> pMap,
+                 Fold          <$> pFold]
 
 
 pValue :: Parser Value
@@ -56,7 +60,7 @@ pValue = signedVal (choice [pLit, pConst] <?> "value") <?> "value"
     pI = withBase <|> default'
       where
         withBase = do
-          ((base, compl), digits) <- (,) <$> parseBase <*> some alphaNumChar
+          ((base, compl), digits) <- (,) <$> pBase <*> some alphaNumChar
           case parseB compl base digits of
             Left  parseE -> customFailure parseE
             Right n      -> pure n
@@ -155,7 +159,7 @@ pCommandPrint = choice [pPrint, pStack, pView] <?> "command"
     pPrint = choice [try withBase, default']
       where
         print    = ["print", "p"]
-        withBase = Print . Just <$> lexeme (recognise print *> parseBase)
+        withBase = Print . Just <$> lexeme (recognise print *> pBase)
         default' = parseItemLex print (Print Nothing)
 
     pStack = parseItemLex ["stack", "f"] Stack
@@ -176,8 +180,26 @@ pSubroutineCall = label "subroutine" . try $ do
     pWord = takeWhile1P Nothing (\c -> c /= ' ' && c /= ')')
 
 
-parseBase :: Parser (Int, Bool)
-parseBase = choice [arb, spec]
+pIf :: Parser (Instructions, Instructions)
+pIf = recogniseLex ["If"] *>
+      ((,) <$> pBlock <*> pBlock)
+
+
+pWhile :: Parser (Instructions, Instructions)
+pWhile = recogniseLex ["While"] *>
+         ((,) <$> pBlock <*> pBlock)
+
+
+pMap :: Parser Instructions
+pMap = recogniseLex ["Map"] *> pBlock
+
+
+pFold :: Parser Instructions
+pFold = recogniseLex ["Fold"] *> pBlock
+
+
+pBase :: Parser (Int, Bool)
+pBase = choice [arb, spec]
   where
     arb = char '[' *> withCompl baseNum <* char ']'
     baseNum = do
@@ -193,6 +215,10 @@ parseBase = choice [arb, spec]
     withCompl :: Parser Int -> Parser (Int, Bool)
     withCompl pBase = (,) <$> pBase <*> compl
       where compl = isJust <$> optional (char '~')
+
+
+pBlock :: Parser Instructions
+pBlock = char '(' *> space *> pInstructions <* lexeme (char ')')
 
 
 -- Parser utils

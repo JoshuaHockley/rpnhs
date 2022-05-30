@@ -13,7 +13,7 @@ import Control.Monad.State
 import Control.Monad.Except
 import Data.Maybe (maybeToList, listToMaybe, catMaybes)
 import Data.Tuple (swap)
-import Data.Bifunctor (first, second)
+import Data.Bifunctor (first, second, bimap)
 import qualified Data.Map as M
 
 
@@ -28,6 +28,12 @@ data Instr = Value Value
            | Operator Operator
            | Command Command
            | CommandPrint CommandPrint
+
+           | If    Instructions Instructions
+           | While Instructions Instructions
+
+           | Map  Instructions
+           | Fold Instructions
 
            | Subroutine Instructions
 
@@ -87,12 +93,6 @@ rpnStackOnly is = do
 
 runInstr :: Instruction -> Calc CtxError CalcState [String]
 runInstr (i, pos) = do
-  -- prepare error context
-  s <- onStack get
-  let ctx = mapStateT . withExcept $ withContext (pos, s)
-         :: Calc CalcError s a -> Calc CtxError s a
-
-  -- run instruction and adjust context
   case i of
     -- base instructions (introduce context)
     Value v        -> ctx . noOutput . onStack $ push v
@@ -100,12 +100,62 @@ runInstr (i, pos) = do
     Command c      -> ctx . noOutput           $ runCmd c
     CommandPrint c -> ctx                      $ runCmdPrint c
 
-    -- subroutine (set error and update context)
-    --   only persist changes to the stack
+    -- if / while (preserve context)
+    If t e -> do
+      c <- ctx checkCond
+      rpn $ if c then t
+                 else e
+
+    While head body -> concat <$> loop
+      where
+        loop :: Calc CtxError CalcState [[String]]
+        loop = do
+          headOut <- rpn head
+          c <- ctx checkCond
+          (headOut :) <$>
+            if c then (:) <$> rpn body <*> loop
+                 else return []
+
+    -- map / fold (preserve context)
+    Map is -> do
+      (s, vars) <- get
+      results <- lift $ mapM (mapVal vars) s
+      let (s', out) = bimap concat concat (unzip results)
+      put (s', vars)
+      return out
+      where
+        mapVal :: Vars -> Value -> Except CtxError ([Value], [String])
+        mapVal vars v = do
+          (out, (s', _)) <- runStateT (rpn is) ([v], vars)
+          return (s', out)
+
+    Fold is -> concat <$> loop
+      where
+        loop :: Calc CtxError CalcState [[String]]
+        loop = do
+          s <- onStack get
+          case s of
+            -- 2 or more values on stack
+            (_ : _ : _) -> do
+              out <- rpn is
+              (out :) <$> loop
+            -- 0 or 1 values on stack
+            _ -> return []
+
+    -- subroutine (set error and update context, only persist changes to the stack)
     Subroutine is -> ctx . mapStateT (withExcept (const SubroutineFailureE))
                      $ rpnStackOnly is
 
   where
+    ctx :: Calc CalcError CalcState a -> Calc CtxError CalcState a
+    -- inject the current error context into an action
+    ctx c = do
+      s <- onStack get
+      mapStateT (withExcept (withContext (pos, s))) c
+
+    checkCond :: Calc' CalcState Bool
+    checkCond = not . isZero <$> onStack pop
+
     noOutput = fmap (const [])
 
 
