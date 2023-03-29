@@ -1,84 +1,58 @@
-cabal-version: 1.12
+cabal-version:      2.4
+name:               rpnhs
+version:            0.1.0.0
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
---
--- see: https://github.com/sol/hpack
+-- A short (one-line) description of the package.
+-- synopsis:
 
-name:           rpnhs
-version:        0.0.0
-license:        GPL-3
-license-file:   LICENSE
-build-type:     Simple
+-- A longer description of the package.
+-- description:
 
-library
-  exposed-modules:
-      Bases
-      Error
-      Inline
-      Interactive
-      Operator
-      Parser
-      Rpn
-      RunLine
-      Subroutine
-      Util
-      Value
-  other-modules:
-      Paths_rpnhs
-  hs-source-dirs:
-      src
-  build-depends:
-      array
-    , base >=4.7 && <5
-    , containers
-    , errors
-    , extra
-    , haskeline
-    , megaparsec
-    , mtl
-    , optparse-applicative
-    , text
-  default-language: Haskell2010
+-- A URL where users can report bugs.
+-- bug-reports:
+
+-- The license under which the package is released.
+-- license:
+
+-- The package author(s).
+-- author:
+
+-- An email address to which users can send suggestions, bug reports, and patches.
+-- maintainer:
+
+-- A copyright notice.
+-- copyright:
+-- category:
 
 executable rpnhs
-  main-is: Main.hs
-  other-modules:
-      Paths_rpnhs
-  hs-source-dirs:
-      app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      array
-    , base >=4.7 && <5
-    , containers
-    , errors
-    , extra
-    , haskeline
-    , megaparsec
-    , mtl
-    , optparse-applicative
-    , rpnhs
-    , text
-  default-language: Haskell2010
+    main-is:          Main.hs
 
-test-suite rpnhs-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Paths_rpnhs
-  hs-source-dirs:
-      test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      array
-    , base >=4.7 && <5
-    , containers
-    , errors
-    , extra
-    , haskeline
-    , megaparsec
-    , mtl
-    , optparse-applicative
-    , rpnhs
-    , text
-  default-language: Haskell2010
+    -- Modules included in this executable, other than Main.
+    other-modules:
+        Bases
+        Error
+        Inline
+        Interactive
+        Operator
+        Parser
+        Rpn
+        RunLine
+        Subroutine
+        Util
+        Value
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends:
+        base ^>=4.16.4.0
+      , array
+      , containers
+      , errors
+      , extra
+      , haskeline
+      , megaparsec
+      , mtl
+      , optparse-applicative
+      , text
+    hs-source-dirs:   app
+    default-language: Haskell2010
